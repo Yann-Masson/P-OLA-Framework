@@ -2,6 +2,7 @@
 
 #include "OLA_Agent.hpp"
 #include "ThermalModel.hpp"
+#include <cppdic/ServiceProvider.hpp>
 
 int main() {
     ThermalModel room(18.0);       // Start room at 18°C
