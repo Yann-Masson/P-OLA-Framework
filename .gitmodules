@@ -1,0 +1,3 @@
+[submodule "CppDic"]
+	path = CppDic
+	url = git@github.com:nerudaj/CppDic.git
