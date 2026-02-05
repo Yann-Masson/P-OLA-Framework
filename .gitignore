@@ -38,7 +38,6 @@ dist/
 
 # Build directories
 bin/
-lib/
 obj/
 
 # Logs
