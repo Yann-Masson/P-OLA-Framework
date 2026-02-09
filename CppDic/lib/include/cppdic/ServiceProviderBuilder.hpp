@@ -4,6 +4,10 @@
 #include <cppdic/ServiceProvider.hpp>
 #include <cppdic/Utils.hpp>
 
+#include <memory>
+#include <tuple>
+#include <type_traits>
+
 namespace dic {
 template <class C>
 concept IsAbstract = std::is_abstract_v<C>;
@@ -22,10 +26,12 @@ public:
         ServiceProviderBuilder<Ts2..., Us..., Vs...>;
   };
 
-  [[nodiscard]] ServiceProviderBuilder() = default;
+  [[nodiscard]] ServiceProviderBuilder()
+      : impls(std::make_shared<Services<Ts...>>()) {}
 
 private:
-  ServiceProviderBuilder(Services<Ts...> impls) : impls(impls) {}
+  ServiceProviderBuilder(std::shared_ptr<Services<Ts...>> impls)
+      : impls(std::move(impls)) {}
 
   template <class...> friend class ServiceProviderBuilder;
 
@@ -46,8 +52,10 @@ public:
 
   auto build() {
     auto finalImpls = impls;
-    initializeEmptyImpls<0, Ts...>(finalImpls);
-    return ServiceProvider<Ts...>(finalImpls);
+    auto provider = ServiceProvider<Ts...>(finalImpls);
+    auto providerRef = provider.ref();
+    initializeEmptyImpls<0, Ts...>(*finalImpls, providerRef);
+    return provider;
   }
 
 private:
@@ -60,26 +68,32 @@ private:
           utils::TypesBeforeTupleAdapter<index, Services<Ts...>>::Types;
 
       if constexpr (std::tuple_size_v<TypesBeforeThisOne> == 0) {
-        static_assert(std::is_default_constructible_v<Impl>,
-                      "Type has to be default-constructible, nothing else is "
-                      "in the collection yet.");
+        static_assert(
+            std::is_default_constructible_v<Impl> ||
+                std::constructible_from<Impl, ServiceProviderRef>,
+            "Type has to be default-constructible or accept "
+            "ServiceProviderRef, nothing else is in the collection "
+            "yet.");
       } else {
-        static_assert(std::is_default_constructible_v<Impl> ||
-                          utils::CanConstructTypeFromAListOfTuples<
-                              Impl, typename utils::Permutations<
-                                        TypesBeforeThisOne>::Types>::value,
-                      "Could not construct service only from services "
-                      "already "
-                      "registered in the builder.");
+        static_assert(
+            std::is_default_constructible_v<Impl> ||
+                std::constructible_from<Impl, ServiceProviderRef> ||
+                utils::CanConstructTypeFromAListOfTuples<
+                    Impl, typename utils::Permutations<
+                              TypesBeforeThisOne>::Types>::value,
+            "Could not construct service only from services "
+            "already registered in the builder or from "
+            "ServiceProviderRef.");
       }
     }
 
     if constexpr (sizeof...(Ts) == index) {
-      return ServiceProviderBuilder<Ts..., Service<Iface, Impl>>(
-          std::tuple_cat(impls, std::tuple<std::shared_ptr<Iface>>(impl)));
+      auto newImpls = std::make_shared<Services<Ts..., Service<Iface, Impl>>>(
+          std::tuple_cat(*impls, std::tuple<std::shared_ptr<Iface>>(impl)));
+      return ServiceProviderBuilder<Ts..., Service<Iface, Impl>>(newImpls);
     } else {
       // Overwrite previously stored implementation (if any)
-      std::get<index>(impls) = impl;
+      std::get<index>(*impls) = impl;
 
       return ConcatTupleTypes3<
           typename utils::TypesBefore<index, Ts...>::Types,
@@ -90,7 +104,8 @@ private:
   }
 
   template <size_t Index, class Head, class... Tail>
-  static void initializeEmptyImpls(auto &impls) {
+  static void initializeEmptyImpls(auto &impls,
+                                   const ServiceProviderRef &providerRef) {
     auto &impl = std::get<Index>(impls);
     constexpr static bool IsNull =
         !(std::is_same_v<typename Head::BaseType, typename Head::ImplType> &&
@@ -98,21 +113,39 @@ private:
     if constexpr (IsNull) {
       using Impl = typename Head::ImplType;
 
-      if constexpr (std::is_default_constructible_v<Impl>) {
+      constexpr bool CanWithProvider =
+          std::constructible_from<Impl, ServiceProviderRef>;
+
+      if constexpr (CanWithProvider) {
+        impl = std::make_shared<Impl>(providerRef);
+      } else if constexpr (std::is_default_constructible_v<Impl>) {
         impl = std::make_shared<Impl>();
       } else {
-        using Deps = utils::CanConstructTypeFromAListOfTuples<
-            Impl, typename utils::Permutations<
-                      std::remove_cvref_t<decltype(impls)>>::Types>::Tuple;
-        auto deps = SubsetCallWrapper<Deps>::selectSubsetPub(impls);
-        static_assert(std::is_same_v<decltype(deps), Deps>,
-                      "Sanity check failed");
-        impl = utils::makeSharedFromTuple<Impl>(deps);
+        using TypesBeforeThisOne =
+            utils::TypesBeforeTupleAdapter<Index, Services<Ts...>>::Types;
+
+        if constexpr (std::tuple_size_v<TypesBeforeThisOne> == 0) {
+          // No services before this one and not default/provider constructible
+          // This will fail at runtime, but should have been caught at
+          // registration time
+          static_assert(false,
+                        "Service cannot be constructed with available "
+                        "dependencies");
+        } else {
+          using Deps = utils::CanConstructTypeFromAListOfTuples<
+              Impl,
+              typename utils::Permutations<TypesBeforeThisOne>::Types>::Tuple;
+          auto deps =
+              SubsetCallWrapper<Deps>::selectSubsetPub(impls);
+          static_assert(std::is_same_v<decltype(deps), Deps>,
+                        "Sanity check failed");
+          impl = utils::makeSharedFromTuple<Impl>(deps);
+        }
       }
     }
 
     if constexpr (sizeof...(Tail) > 0)
-      initializeEmptyImpls<Index + 1, Tail...>(impls);
+      initializeEmptyImpls<Index + 1, Tail...>(impls, providerRef);
   }
 
   template <class> struct SubsetCallWrapper;
@@ -142,6 +175,6 @@ private:
   };
 
 private:
-  Services<Ts...> impls;
+  std::shared_ptr<Services<Ts...>> impls;
 };
 } // namespace dic

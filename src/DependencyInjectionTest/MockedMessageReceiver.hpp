@@ -6,12 +6,11 @@
 */
 
 #pragma once
-#include "IMessageReceiverInterface.hpp"
+#include "AMessageReceiver.hpp"
 
-class MockedMessageReceiver: public IMessageReceiverInterface {
-    public:
-        void receiveMessage(const std::string& message) override;
-
-    protected:
-    private:
+class MockedMessageReceiver : public AMessageReceiver
+{
+public:
+    using AMessageReceiver::AMessageReceiver;
+    void receiveMessage(const std::string &message) override;
 };

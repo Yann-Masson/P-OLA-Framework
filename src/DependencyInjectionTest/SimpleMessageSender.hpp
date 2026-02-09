@@ -6,12 +6,11 @@
 */
 
 #pragma once
-#include "IMessageSenderInterface.hpp"
+#include "AMessageSender.hpp"
 
-class SimpleMessageSender: public IMessageSenderInterface {
-    public:
-        void sendMessage(const std::string& message) override;
-
-    protected:
-    private:
+class SimpleMessageSender : public AMessageSender
+{
+public:
+    using AMessageSender::AMessageSender;
+    void sendMessage(const std::string &message) override;
 };

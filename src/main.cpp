@@ -13,17 +13,6 @@
 
 int main()
 {
-    // Code without dependency injection
-    // Here we have to manually create each dependency and manage them ourselves, which can become cumbersome as the number of dependencies grows.
-    std::shared_ptr<IMessageSenderInterface> simpleSender = std::make_shared<SimpleMessageSender>();
-    std::shared_ptr<IMessageSenderInterface> mockedSender = std::make_shared<MockedMessageSender>();
-    std::shared_ptr<IMessageReceiverInterface> simpleReceiver = std::make_shared<SimpleMessageReceiver>();
-    std::shared_ptr<IMessageReceiverInterface> mockedReceiver = std::make_shared<MockedMessageReceiver>();
-
-    simpleSender->sendMessage("Hello");
-    mockedSender->sendMessage("Hello");
-    simpleReceiver->receiveMessage("Test");
-    mockedReceiver->receiveMessage("Test");
 
     // Code with dependency injection
     // here only one declaration of the dependencies, and the rest is handled by the DI container
