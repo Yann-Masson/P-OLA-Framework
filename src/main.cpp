@@ -22,6 +22,10 @@ int libTorchTest() {
         std::cout << "[INFO] Number of CUDA devices: " << torch::cuda::device_count() << std::endl;
 
         torch::Device device(torch::kCUDA);
+    } else if (torch::mps::is_available()) {
+        std::cout << "[SUCCESS] MPS (Apple Silicon GPU) is available! Training on MPS." << std::endl;
+
+        torch::Device device(torch::kMPS);
     } else {
         std::cout << "[WARNING] CUDA is not available. Training on CPU." << std::endl;
         torch::Device device(torch::kCPU);
