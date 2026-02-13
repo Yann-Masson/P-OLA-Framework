@@ -4,7 +4,9 @@
 #include "OLA_Agent.hpp"
 #include "ThermalModel.hpp"
 #include <cppdic/ServiceProvider.hpp>
-
+#include <cppdic/ServiceProviderBuilder.hpp>
+#include "clock/IClock.hpp"
+#include "clock/SimulationClock.hpp"
 #include <torch/script.h>
 #include <iomanip>
 #include <chrono>
@@ -157,14 +159,19 @@ int main() {
 
     std::cout << "========== STARTING OLA SIMULATION ==========\n\n";
     ThermalModel room(18.0);       // Start room at 18°C
-    OLA_Controller smartAgent;
 
-    double simTime = 0;            // Seconds
-    double dt = 60.0;              // 1 minute steps
+    OLA_Controller smartAgent;
+    auto provider = dic::ServiceProviderBuilder()
+                        .addService<IClock, SimulationClock>()
+                        .build();
+
+    double simTime = 0; // Seconds
+    double dt = 60.0;   // 1 minute steps
     double totalCost = 0.0;
 
     // Simulation loop (e.g., simulate 24 hours)
-    for (int i = 0; i < 1440; ++i) {
+    for (int i = 0; i < 1440; ++i)
+    {
         // 1. Get External Data (This could be your API calls)
         double currentPrice = 0.15; // $/kWh
         double tempOut = 5.0;       // Cold day
@@ -174,8 +181,8 @@ int main() {
             room.getTemp(),
             tempOut,
             currentPrice,
-            10.5,  // 10.5 km away
-            1.2    // km/minute
+            10.5, // 10.5 km away
+            1.2   // km/minute
         };
 
         // 3. AI makes a decision

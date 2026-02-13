@@ -21,7 +21,10 @@ add_executable(${PROJECT_NAME}
         src/main.cpp
         src/ThermalModel.cpp
         src/OLA_Agent.cpp
-        src/OLA_Agent.hpp)
+        src/OLA_Agent.hpp
+        src/clock/IClock.hpp
+        src/clock/SimulationClock.cpp
+        src/clock/SimulationClock.hpp)
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 
