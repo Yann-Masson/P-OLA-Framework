@@ -10,7 +10,7 @@ add_executable(P-OLA_Simulator
         src/OLA_Agent.cpp
         src/OLA_Agent.hpp)
 
-target_compile_features(P-OLA_Simulator PRIVATE cxx_std_20)
+target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 
 target_link_libraries(P-OLA_Simulator
     PRIVATE
