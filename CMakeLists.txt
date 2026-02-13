@@ -28,6 +28,15 @@ add_executable(${PROJECT_NAME}
         src/consumptionService/IConsumptionService.hpp
         src/consumptionService/ConsumptionService.cpp
         src/consumptionService/ConsumptionService.hpp
+        src/temperatureFactor/ITemperatureFactor.hpp
+        src/temperatureFactor/ATemperatureFactor.hpp
+        src/temperatureFactor/ATemperatureFactor.cpp
+        src/temperatureFactor/Heater.hpp
+        src/temperatureFactor/Heater.cpp
+        src/temperatureFactor/Wall.hpp
+        src/temperatureFactor/Wall.cpp
+        src/temperatureFactor/Window.hpp
+        src/temperatureFactor/Window.cpp
 )
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
