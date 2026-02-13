@@ -24,7 +24,11 @@ add_executable(${PROJECT_NAME}
         src/OLA_Agent.hpp
         src/clock/IClock.hpp
         src/clock/SimulationClock.cpp
-        src/clock/SimulationClock.hpp)
+        src/clock/SimulationClock.hpp
+        src/consumptionService/IConsumptionService.hpp
+        src/consumptionService/ConsumptionService.cpp
+        src/consumptionService/ConsumptionService.hpp
+)
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 
