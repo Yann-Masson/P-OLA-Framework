@@ -8,22 +8,7 @@ add_executable(P-OLA_Simulator
         src/main.cpp
         src/ThermalModel.cpp
         src/OLA_Agent.cpp
-        src/OLA_Agent.hpp
-        src/DependencyInjectionTest/IMessageSenderInterface.hpp
-        src/DependencyInjectionTest/AMessageSender.hpp
-        src/DependencyInjectionTest/AMessageSender.cpp
-        src/DependencyInjectionTest/SimpleMessageSender.hpp
-        src/DependencyInjectionTest/SimpleMessageSender.cpp
-        src/DependencyInjectionTest/MockedMessageSender.hpp
-        src/DependencyInjectionTest/MockedMessageSender.cpp
-        src/DependencyInjectionTest/IMessageReceiverInterface.hpp
-        src/DependencyInjectionTest/AMessageReceiver.hpp
-        src/DependencyInjectionTest/AMessageReceiver.cpp
-        src/DependencyInjectionTest/SimpleMessageReceiver.hpp
-        src/DependencyInjectionTest/SimpleMessageReceiver.cpp
-        src/DependencyInjectionTest/MockedMessageReceiver.hpp
-        src/DependencyInjectionTest/MockedMessageReceiver.cpp
-)
+        src/OLA_Agent.hpp)
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 

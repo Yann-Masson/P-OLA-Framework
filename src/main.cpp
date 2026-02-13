@@ -3,73 +3,47 @@
 #include "OLA_Agent.hpp"
 #include "ThermalModel.hpp"
 #include <cppdic/ServiceProvider.hpp>
-#include <cppdic/ServiceProviderBuilder.hpp>
-#include "DependencyInjectionTest/IMessageSenderInterface.hpp"
-#include "DependencyInjectionTest/SimpleMessageSender.hpp"
-#include "DependencyInjectionTest/MockedMessageSender.hpp"
-#include "DependencyInjectionTest/IMessageReceiverInterface.hpp"
-#include "DependencyInjectionTest/SimpleMessageReceiver.hpp"
-#include "DependencyInjectionTest/MockedMessageReceiver.hpp"
 
-int main()
-{
+int main() {
+    ThermalModel room(18.0);       // Start room at 18°C
+    OLA_Controller smartAgent;
 
-    // Code with dependency injection
-    // here only one declaration of the dependencies, and the rest is handled by the DI container
-    auto provider = dic::ServiceProviderBuilder()
-                        .addService<IMessageSenderInterface, SimpleMessageSender>()
-                        .addService<IMessageReceiverInterface, SimpleMessageReceiver>()
-                        .build();
+    double simTime = 0;            // Seconds
+    double dt = 60.0;              // 1 minute steps
+    double totalCost = 0.0;
 
-    // Mocked versions
-    // auto provider = dic::ServiceProviderBuilder()
-    //                         .addService<IMessageSenderInterface, MockedMessageSender>()
-    //                         .addService<IMessageReceiverInterface, MockedMessageReceiver>()
-    //                         .build();
+    // Simulation loop (e.g., simulate 24 hours)
+    for (int i = 0; i < 1440; ++i) {
+        // 1. Get External Data (This could be your API calls)
+        double currentPrice = 0.15; // $/kWh
+        double tempOut = 5.0;       // Cold day
 
-    provider.get<IMessageSenderInterface>()->sendMessage("Hello from DI!");
-    provider.get<IMessageReceiverInterface>()->receiveMessage("Test from DI!");
+        // 2. Prepare the State for the AI
+        State currentState = {
+            room.getTemp(),
+            tempOut,
+            currentPrice,
+            10.5,  // 10.5 km away
+            1.2    // km/minute
+        };
 
-    // Old code
-    // ThermalModel room(18.0);       // Start room at 18°C
-    // OLA_Controller smartAgent;
+        // 3. AI makes a decision
+        double action = smartAgent.decide(currentState);
 
-    // double simTime = 0;            // Seconds
-    // double dt = 60.0;              // 1 minute steps
-    // double totalCost = 0.0;
+        // 4. Update Physics
+        double energyBefore = room.getTotalEnergyKWh();
+        room.update(tempOut, action, dt);
+        double energyAfter = room.getTotalEnergyKWh();
 
-    // // Simulation loop (e.g., simulate 24 hours)
-    // for (int i = 0; i < 1440; ++i) {
-    //     // 1. Get External Data (This could be your API calls)
-    //     double currentPrice = 0.15; // $/kWh
-    //     double tempOut = 5.0;       // Cold day
+        // 5. Track Cost
+        totalCost += (energyAfter - energyBefore) * currentPrice;
 
-    //     // 2. Prepare the State for the AI
-    //     State currentState = {
-    //         room.getTemp(),
-    //         tempOut,
-    //         currentPrice,
-    //         10.5,  // 10.5 km away
-    //         1.2    // km/minute
-    //     };
+        simTime += dt;
 
-    //     // 3. AI makes a decision
-    //     double action = smartAgent.decide(currentState);
+        // Log results for your paper's graphs
+        std::cout << "Time: " << i << "m | Temp: " << room.getTemp()
+                  << " | Cost: $" << totalCost << std::endl;
+    }
 
-    //     // 4. Update Physics
-    //     double energyBefore = room.getTotalEnergyKWh();
-    //     room.update(tempOut, action, dt);
-    //     double energyAfter = room.getTotalEnergyKWh();
-
-    //     // 5. Track Cost
-    //     totalCost += (energyAfter - energyBefore) * currentPrice;
-
-    //     simTime += dt;
-
-    //     // Log results for your paper's graphs
-    //     std::cout << "Time: " << i << "m | Temp: " << room.getTemp()
-    //               << " | Cost: $" << totalCost << std::endl;
-    // }
-
-    // return 0;
+    return 0;
 }
