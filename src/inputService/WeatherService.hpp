@@ -7,11 +7,7 @@
 
 #pragma once
 #include "AInputService.hpp"
-
-struct WeatherData {
-    double outTemperature;
-    double enlightment;
-};
+#include "dataTypes.hpp"
 
 class WeatherService: public AInputService<WeatherData> {
     public:

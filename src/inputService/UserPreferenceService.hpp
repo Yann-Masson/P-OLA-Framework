@@ -7,11 +7,7 @@
 
 #pragma once
 #include "AInputService.hpp"
-
-struct UserPreferenceData {
-    double preferredTemperature;
-    bool isHome;
-};
+#include "dataTypes.hpp"
 
 class UserPreferenceService: public AInputService<UserPreferenceData> {
     public:

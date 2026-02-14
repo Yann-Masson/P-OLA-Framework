@@ -3,7 +3,7 @@
 UserPreferenceData UserPreferenceService::getInput()
 {
 	return {
-		.preferredTemperature = 22.0,
-		.isHome = true
+		.minTemperature = 22.0,
+		.maxTemperature = 28.0
 	};
 }

@@ -7,11 +7,7 @@
 
 #pragma once
 #include "AInputService.hpp"
-
-struct GPSData {
-    double distanceKm;
-    double velocityKmMin;
-};
+#include "dataTypes.hpp"
 
 class GPSService: public AInputService<GPSData> {
     public:

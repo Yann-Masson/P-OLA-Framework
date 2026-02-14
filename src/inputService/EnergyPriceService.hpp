@@ -7,10 +7,7 @@
 
 #pragma once
 #include "AInputService.hpp"
-
-struct EnergyPriceData {
-    double pricePerKWh;
-};
+#include "dataTypes.hpp"
 
 class EnergyPriceService: public AInputService<EnergyPriceData> {
     public:
