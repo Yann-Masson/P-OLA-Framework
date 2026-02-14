@@ -37,6 +37,16 @@ add_executable(${PROJECT_NAME}
         src/temperatureFactor/Wall.cpp
         src/temperatureFactor/Window.hpp
         src/temperatureFactor/Window.cpp
+        src/inputService/AInputService.hpp
+        src/inputService/EnergyPriceService.cpp
+        src/inputService/EnergyPriceService.hpp
+        src/inputService/GPSService.cpp
+        src/inputService/GPSService.hpp
+        src/inputService/IInputService.hpp
+        src/inputService/UserPreferenceService.cpp
+        src/inputService/UserPreferenceService.hpp
+        src/inputService/WeatherService.cpp
+        src/inputService/WeatherService.hpp
 )
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
