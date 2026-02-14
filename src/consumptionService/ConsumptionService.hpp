@@ -13,7 +13,7 @@ class ConsumptionService: public IConsumptionService {
     public:
         ConsumptionService(dic::ServiceProviderRef provider);
 
-        void recordEnergy(double kWh, double pricePerKWh) override;
+        void recordEnergy(double kWh) override;
         double getTotalEnergyKWh() const override;
         double getTotalCost() const override;
         void reset() override;
