@@ -2,7 +2,7 @@
 ** EPITECH PROJECT, 2026
 ** P-OLA-Framework
 ** File description:
-** dataTypes
+** DataTypes
 */
 
 #pragma once

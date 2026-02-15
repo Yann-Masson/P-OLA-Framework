@@ -7,13 +7,14 @@
 
 #pragma once
 #include "AInputService.hpp"
-#include "dataTypes.hpp"
+#include "DataTypes.hpp"
 
-class UserPreferenceService: public AInputService<UserPreferenceData> {
-    public:
-        using AInputService<UserPreferenceData>::AInputService;
-        UserPreferenceData getInput() override;
+class UserPreferenceService : public AInputService<UserPreferenceData>
+{
+public:
+    using AInputService<UserPreferenceData>::AInputService;
+    UserPreferenceData getInput() override;
 
-    protected:
-    private:
+protected:
+private:
 };

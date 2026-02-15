@@ -7,13 +7,14 @@
 
 #pragma once
 #include "AInputService.hpp"
-#include "dataTypes.hpp"
+#include "DataTypes.hpp"
 
-class EnergyPriceService: public AInputService<EnergyPriceData> {
-    public:
-        using AInputService<EnergyPriceData>::AInputService;
-        EnergyPriceData getInput() override;
+class EnergyPriceService : public AInputService<EnergyPriceData>
+{
+public:
+    using AInputService<EnergyPriceData>::AInputService;
+    EnergyPriceData getInput() override;
 
-    protected:
-    private:
+protected:
+private:
 };

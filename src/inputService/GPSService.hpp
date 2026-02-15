@@ -7,13 +7,14 @@
 
 #pragma once
 #include "AInputService.hpp"
-#include "dataTypes.hpp"
+#include "DataTypes.hpp"
 
-class GPSService: public AInputService<GPSData> {
-    public:
-        using AInputService<GPSData>::AInputService;
-        GPSData getInput() override;
+class GPSService : public AInputService<GPSData>
+{
+public:
+    using AInputService<GPSData>::AInputService;
+    GPSData getInput() override;
 
-    protected:
-    private:
+protected:
+private:
 };

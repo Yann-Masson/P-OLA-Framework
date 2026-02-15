@@ -7,13 +7,14 @@
 
 #pragma once
 #include "AInputService.hpp"
-#include "dataTypes.hpp"
+#include "DataTypes.hpp"
 
-class WeatherService: public AInputService<WeatherData> {
-    public:
-        using AInputService<WeatherData>::AInputService;
-        WeatherData getInput() override;
+class WeatherService : public AInputService<WeatherData>
+{
+public:
+    using AInputService<WeatherData>::AInputService;
+    WeatherData getInput() override;
 
-    protected:
-    private:
+protected:
+private:
 };
