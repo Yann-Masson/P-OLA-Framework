@@ -9,6 +9,7 @@
 #include "clock/SimulationClock.hpp"
 #include <torch/script.h>
 #include <iomanip>
+#include "room/Room.hpp"
 #include <chrono>
 
 int libTorchTest() {
@@ -163,6 +164,7 @@ int main() {
     OLA_Controller smartAgent;
     auto provider = dic::ServiceProviderBuilder()
                         .addService<IClock, SimulationClock>()
+                        .addService<Room>()
                         .build();
 
     double simTime = 0; // Seconds
