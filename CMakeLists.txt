@@ -19,9 +19,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/ThermalModel.cpp
-        src/OLA_Agent.cpp
-        src/OLA_Agent.hpp
         src/clock/IClock.hpp
         src/clock/SimulationClock.cpp
         src/clock/SimulationClock.hpp
@@ -50,6 +47,9 @@ add_executable(${PROJECT_NAME}
         src/inputService/WeatherService.cpp
         src/inputService/WeatherService.hpp
         src/inputService/DataTypes.hpp
+        src/model/IAIModel.hpp
+        src/model/RuleBasedModel.cpp
+        src/model/RuleBasedModel.hpp
         src/room/Room.cpp
         src/room/Room.hpp
 )
