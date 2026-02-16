@@ -50,6 +50,8 @@ add_executable(${PROJECT_NAME}
         src/model/IAIModel.hpp
         src/model/RuleBasedModel.cpp
         src/model/RuleBasedModel.hpp
+        src/model/AIModel.cpp
+        src/model/AIModel.hpp
         src/room/Room.cpp
         src/room/Room.hpp
 )
