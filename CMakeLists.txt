@@ -37,6 +37,8 @@ add_executable(${PROJECT_NAME}
         src/temperatureFactor/Wall.cpp
         src/temperatureFactor/Window.hpp
         src/temperatureFactor/Window.cpp
+        src/temperatureFactor/TemperatureFactorRegistry.hpp
+        src/temperatureFactor/TemperatureFactorRegistry.cpp
         src/inputService/AInputService.hpp
         src/inputService/EnergyPriceService.cpp
         src/inputService/EnergyPriceService.hpp
