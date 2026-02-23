@@ -9,7 +9,7 @@
 
 class ITemperatureFactor {
     public:
-        ~ITemperatureFactor();
+        virtual ~ITemperatureFactor() = default;
 
         virtual double simulate() = 0;
 
