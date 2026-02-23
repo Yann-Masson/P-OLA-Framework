@@ -50,6 +50,8 @@ add_executable(${PROJECT_NAME}
         src/inputService/WeatherService.cpp
         src/inputService/WeatherService.hpp
         src/inputService/DataTypes.hpp
+        src/room/Room.cpp
+        src/room/Room.hpp
 )
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
