@@ -11,33 +11,48 @@
 #include <iomanip>
 #include "room/Room.hpp"
 #include <chrono>
+#include "temperatureFactor/TemperatureFactorRegistry.hpp"
+#include "consumptionService/ConsumptionService.hpp"
+#include "room/Room.hpp"
+#include "inputService/EnergyPriceService.hpp"
+#include "inputService/WeatherService.hpp"
+#include "inputService/GPSService.hpp"
+#include "inputService/UserPreferenceService.hpp"
 
-int libTorchTest() {
+int libTorchTest()
+{
     std::cout << "======================================" << std::endl;
     std::cout << "GPU STRESS TEST Program Started" << std::endl;
     std::cout << "======================================" << std::endl;
 
     // Check if CUDA (GPU support) is available
     std::cout << "[INFO] Checking CUDA availability..." << std::endl;
-    if (torch::cuda::is_available()) {
+    if (torch::cuda::is_available())
+    {
         std::cout << "[SUCCESS] CUDA is available! Training on GPU." << std::endl;
         std::cout << "[DEBUG] CUDA device count raw: " << static_cast<int>(torch::cuda::device_count()) << std::endl;
         std::cout << "[INFO] Number of CUDA devices: " << torch::cuda::device_count() << std::endl;
 
         torch::Device device(torch::kCUDA);
-    } else if (torch::mps::is_available()) {
+    }
+    else if (torch::mps::is_available())
+    {
         std::cout << "[SUCCESS] MPS (Apple Silicon GPU) is available! Training on MPS." << std::endl;
 
         torch::Device device(torch::kMPS);
-    } else {
+    }
+    else
+    {
         std::cout << "[WARNING] CUDA is not available. Training on CPU." << std::endl;
         torch::Device device(torch::kCPU);
     }
 
     // Define a MUCH HEAVIER neural network for GPU stress testing
     std::cout << "\n[INFO] Defining HEAVY neural network architecture..." << std::endl;
-    struct HeavyNet : torch::nn::Module {
-        HeavyNet() {
+    struct HeavyNet : torch::nn::Module
+    {
+        HeavyNet()
+        {
             // Much deeper and wider network
             fc1 = register_module("fc1", torch::nn::Linear(2048, 4096));
             fc2 = register_module("fc2", torch::nn::Linear(4096, 2048));
@@ -55,7 +70,8 @@ int libTorchTest() {
             bn4 = register_module("bn4", torch::nn::BatchNorm1d(512));
         }
 
-        torch::Tensor forward(torch::Tensor x) {
+        torch::Tensor forward(torch::Tensor x)
+        {
             x = torch::relu(bn1->forward(fc1->forward(x)));
             x = torch::relu(bn2->forward(fc2->forward(x)));
             x = torch::relu(bn3->forward(fc3->forward(x)));
@@ -81,12 +97,13 @@ int libTorchTest() {
 
     // Generate MUCH LARGER random data for GPU stress testing
     std::cout << "\n[INFO] Generating LARGE random training dataset..." << std::endl;
-    auto x = torch::rand({512, 2048});  // 512 samples, much larger batch
+    auto x = torch::rand({512, 2048}); // 512 samples, much larger batch
     auto y = torch::randint(10, {512});
     std::cout << "[SUCCESS] Generated data - Input shape: [512, 2048], Label shape: [512]" << std::endl;
 
     // Move data to GPU if available
-    if (torch::cuda::is_available()) {
+    if (torch::cuda::is_available())
+    {
         std::cout << "[INFO] Moving data and model to GPU..." << std::endl;
         x = x.cuda();
         y = y.cuda();
@@ -97,7 +114,9 @@ int libTorchTest() {
 
         // Force CUDA synchronization to ensure transfer is complete
         torch::cuda::synchronize();
-    } else {
+    }
+    else
+    {
         std::cout << "[INFO] Using CPU for computation" << std::endl;
     }
 
@@ -108,14 +127,15 @@ int libTorchTest() {
     std::cout << "[SUCCESS] Using CrossEntropyLoss and Adam optimizer (learning rate: 0.001)" << std::endl;
 
     // Training loop - MANY MORE EPOCHS for GPU stress testing
-    const int num_epochs = 500;  // Much more epochs
+    const int num_epochs = 500; // Much more epochs
     std::cout << "\n[INFO] Starting HEAVY training loop (" << num_epochs << " epochs)..." << std::endl;
     std::cout << "[INFO] This will take 1-2 minutes - Monitor your GPU now!" << std::endl;
     std::cout << "======================================" << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
+    for (size_t epoch = 0; epoch < num_epochs; ++epoch)
+    {
         auto epoch_start = std::chrono::high_resolution_clock::now();
 
         optimizer.zero_grad();
@@ -125,7 +145,8 @@ int libTorchTest() {
         optimizer.step();
 
         // Force GPU synchronization for accurate timing
-        if (torch::cuda::is_available()) {
+        if (torch::cuda::is_available())
+        {
             torch::cuda::synchronize();
         }
 
@@ -133,7 +154,8 @@ int libTorchTest() {
         auto epoch_duration = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_end - epoch_start).count();
 
         // Print progress every 10 epochs
-        if ((epoch + 1) % 10 == 0) {
+        if ((epoch + 1) % 10 == 0)
+        {
             auto current_time = std::chrono::high_resolution_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
@@ -155,54 +177,69 @@ int libTorchTest() {
     return 0;
 }
 
-int main() {
+int main()
+{
     libTorchTest();
 
-    std::cout << "========== STARTING OLA SIMULATION ==========\n\n";
-    ThermalModel room(18.0);       // Start room at 18°C
+    // std::cout << "========== STARTING OLA SIMULATION ==========\n\n";
+    // ThermalModel room(18.0);       // Start room at 18°C
 
     OLA_Controller smartAgent;
     auto provider = dic::ServiceProviderBuilder()
                         .addService<IClock, SimulationClock>()
-                        .addService<Room>()
+                        .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
+                        .addService<IInputService<WeatherData>, WeatherService>()
+                        .addService<IInputService<GPSData>, GPSService>()
+                        .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
+                        .addService<Heater>()
+                        .addService<Wall>()
+                        .addService<Window>()
+                        .addService<TemperatureFactorRegistry>()
+                        .addService<IConsumptionService, ConsumptionService>()
                         .build();
 
-    double simTime = 0; // Seconds
-    double dt = 60.0;   // 1 minute steps
-    double totalCost = 0.0;
+    Room room(provider, 18.0); // Start room at 18°C
+
+    // double simTime = 0; // Seconds
+    // double dt = 60.0;   // 1 minute steps
+    // double totalCost = 0.0;
 
     // Simulation loop (e.g., simulate 24 hours)
     for (int i = 0; i < 1440; ++i)
     {
-        // 1. Get External Data (This could be your API calls)
-        double currentPrice = 0.15; // $/kWh
-        double tempOut = 5.0;       // Cold day
+        // // 1. Get External Data (This could be your API calls)
+        // double currentPrice = 0.15; // $/kWh
+        // double tempOut = 5.0;       // Cold day
 
-        // 2. Prepare the State for the AI
-        State currentState = {
-            room.getTemp(),
-            tempOut,
-            currentPrice,
-            10.5, // 10.5 km away
-            1.2   // km/minute
-        };
+        // // 2. Prepare the State for the AI
+        // State currentState = {
+        //     room.getTemp(),
+        //     tempOut,
+        //     currentPrice,
+        //     10.5, // 10.5 km away
+        //     1.2   // km/minute
+        // };
 
-        // 3. AI makes a decision
-        double action = smartAgent.decide(currentState);
+        // // 3. AI makes a decision
+        // double action = smartAgent.decide(currentState);
 
-        // 4. Update Physics
-        double energyBefore = room.getTotalEnergyKWh();
-        room.update(tempOut, action, dt);
-        double energyAfter = room.getTotalEnergyKWh();
+        // // 4. Update Physics
+        // double energyBefore = room.getTotalEnergyKWh();
+        // room.update(tempOut, action, dt);
+        // double energyAfter = room.getTotalEnergyKWh();
 
-        // 5. Track Cost
-        totalCost += (energyAfter - energyBefore) * currentPrice;
+        // // 5. Track Cost
+        // totalCost += (energyAfter - energyBefore) * currentPrice;
 
-        simTime += dt;
+        // simTime += dt;
 
-        // Log results for your paper's graphs
-        std::cout << "Time: " << i << "m | Temp: " << room.getTemp()
-                  << " | Cost: $" << totalCost << std::endl;
+        // // Log results for your paper's graphs
+        // std::cout << "Time: " << i << "m | Temp: " << room.getTemp()
+        //           << " | Cost: $" << totalCost << std::endl;
+        room.simulate();
+        std::cout << "Current Room Temperature: " << room.getTemperature() << "°C" << std::endl;
+        std::cout << "Current Total Energy Consumption: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh" << std::endl;
+        std::cout << "Current Total Cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
     }
 
     return 0;
