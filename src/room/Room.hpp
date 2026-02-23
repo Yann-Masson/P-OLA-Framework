@@ -7,7 +7,7 @@
 
 #pragma once
 #include <cppdic/ServiceProvider.hpp>
-#include "../temperatureFactor/ITemperatureFactor.hpp"
+#include "../temperatureFactor/TemperatureFactorRegistry.hpp"
 
 class Room {
     public:

@@ -17,8 +17,7 @@ double Room::getTemperature() const
 
 void Room::simulate()
 {
-	// TODO: call all of the temperature factor services and update the temperature accordingly
-	// for (auto &service : _provider.get<ITemperatureFactor>().getAll()) {
-	// 	_temperature += service->simulate();
-	// }
+	for (auto &service : _provider.get<TemperatureFactorRegistry>()->getFactors()) {
+		_temperature += service->simulate();
+	}
 }
