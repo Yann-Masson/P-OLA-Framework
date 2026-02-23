@@ -8,6 +8,8 @@
 #pragma once
 #include "IConsumptionService.hpp"
 #include <cppdic/ServiceProvider.hpp>
+#include "../inputService/IInputService.hpp"
+#include "../inputService/DataTypes.hpp"
 
 class ConsumptionService: public IConsumptionService {
     public:

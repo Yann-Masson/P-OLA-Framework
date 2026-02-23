@@ -17,33 +17,48 @@
 #include <torch/csrc/jit/api/module.h>              // for jit::Module
 #include <torch/csrc/jit/frontend/tracer.h>
 #include <torch/serialize.h>
+#include "temperatureFactor/TemperatureFactorRegistry.hpp"
+#include "consumptionService/ConsumptionService.hpp"
+#include "room/Room.hpp"
+#include "inputService/EnergyPriceService.hpp"
+#include "inputService/WeatherService.hpp"
+#include "inputService/GPSService.hpp"
+#include "inputService/UserPreferenceService.hpp"
 
-int libTorchTest() {
+int libTorchTest()
+{
     std::cout << "======================================" << std::endl;
     std::cout << "GPU STRESS TEST Program Started" << std::endl;
     std::cout << "======================================" << std::endl;
 
     // Check if CUDA (GPU support) is available
     std::cout << "[INFO] Checking CUDA availability..." << std::endl;
-    if (torch::cuda::is_available()) {
+    if (torch::cuda::is_available())
+    {
         std::cout << "[SUCCESS] CUDA is available! Training on GPU." << std::endl;
         std::cout << "[DEBUG] CUDA device count raw: " << static_cast<int>(torch::cuda::device_count()) << std::endl;
         std::cout << "[INFO] Number of CUDA devices: " << torch::cuda::device_count() << std::endl;
 
         torch::Device device(torch::kCUDA);
-    } else if (torch::mps::is_available()) {
+    }
+    else if (torch::mps::is_available())
+    {
         std::cout << "[SUCCESS] MPS (Apple Silicon GPU) is available! Training on MPS." << std::endl;
 
         torch::Device device(torch::kMPS);
-    } else {
+    }
+    else
+    {
         std::cout << "[WARNING] CUDA is not available. Training on CPU." << std::endl;
         torch::Device device(torch::kCPU);
     }
 
     // Define a MUCH HEAVIER neural network for GPU stress testing
     std::cout << "\n[INFO] Defining HEAVY neural network architecture..." << std::endl;
-    struct HeavyNet : torch::nn::Module {
-        HeavyNet() {
+    struct HeavyNet : torch::nn::Module
+    {
+        HeavyNet()
+        {
             // Much deeper and wider network
             fc1 = register_module("fc1", torch::nn::Linear(2048, 4096));
             fc2 = register_module("fc2", torch::nn::Linear(4096, 2048));
@@ -61,7 +76,8 @@ int libTorchTest() {
             bn4 = register_module("bn4", torch::nn::BatchNorm1d(512));
         }
 
-        torch::Tensor forward(torch::Tensor x) {
+        torch::Tensor forward(torch::Tensor x)
+        {
             x = torch::relu(bn1->forward(fc1->forward(x)));
             x = torch::relu(bn2->forward(fc2->forward(x)));
             x = torch::relu(bn3->forward(fc3->forward(x)));
@@ -87,12 +103,13 @@ int libTorchTest() {
 
     // Generate MUCH LARGER random data for GPU stress testing
     std::cout << "\n[INFO] Generating LARGE random training dataset..." << std::endl;
-    auto x = torch::rand({512, 2048});  // 512 samples, much larger batch
+    auto x = torch::rand({512, 2048}); // 512 samples, much larger batch
     auto y = torch::randint(10, {512});
     std::cout << "[SUCCESS] Generated data - Input shape: [512, 2048], Label shape: [512]" << std::endl;
 
     // Move data to GPU if available
-    if (torch::cuda::is_available()) {
+    if (torch::cuda::is_available())
+    {
         std::cout << "[INFO] Moving data and model to GPU..." << std::endl;
         x = x.cuda();
         y = y.cuda();
@@ -103,7 +120,9 @@ int libTorchTest() {
 
         // Force CUDA synchronization to ensure transfer is complete
         torch::cuda::synchronize();
-    } else {
+    }
+    else
+    {
         std::cout << "[INFO] Using CPU for computation" << std::endl;
     }
 
@@ -114,14 +133,15 @@ int libTorchTest() {
     std::cout << "[SUCCESS] Using CrossEntropyLoss and Adam optimizer (learning rate: 0.001)" << std::endl;
 
     // Training loop - MANY MORE EPOCHS for GPU stress testing
-    const int num_epochs = 500;  // Much more epochs
+    const int num_epochs = 500; // Much more epochs
     std::cout << "\n[INFO] Starting HEAVY training loop (" << num_epochs << " epochs)..." << std::endl;
     std::cout << "[INFO] This will take 1-2 minutes - Monitor your GPU now!" << std::endl;
     std::cout << "======================================" << std::endl;
 
     auto start_time = std::chrono::high_resolution_clock::now();
 
-    for (size_t epoch = 0; epoch < num_epochs; ++epoch) {
+    for (size_t epoch = 0; epoch < num_epochs; ++epoch)
+    {
         auto epoch_start = std::chrono::high_resolution_clock::now();
 
         optimizer.zero_grad();
@@ -131,7 +151,8 @@ int libTorchTest() {
         optimizer.step();
 
         // Force GPU synchronization for accurate timing
-        if (torch::cuda::is_available()) {
+        if (torch::cuda::is_available())
+        {
             torch::cuda::synchronize();
         }
 
@@ -139,7 +160,8 @@ int libTorchTest() {
         auto epoch_duration = std::chrono::duration_cast<std::chrono::milliseconds>(epoch_end - epoch_start).count();
 
         // Print progress every 10 epochs
-        if ((epoch + 1) % 10 == 0) {
+        if ((epoch + 1) % 10 == 0)
+        {
             auto current_time = std::chrono::high_resolution_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(current_time - start_time).count();
 
@@ -244,11 +266,6 @@ int main() {
     };
 
     std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
-
-    auto provider = dic::ServiceProviderBuilder()
-                        .addService<IClock, SimulationClock>()
-                        .addService<Room>()
-                        .build();
 
     return 0;
 }
