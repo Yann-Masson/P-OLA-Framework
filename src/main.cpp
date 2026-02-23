@@ -9,6 +9,14 @@
 #include <iomanip>
 #include "room/Room.hpp"
 #include <chrono>
+#include <filesystem>
+
+#include "model/AIModel.hpp"
+
+#include <torch/csrc/jit/serialization/import.h>   // already may be included
+#include <torch/csrc/jit/api/module.h>              // for jit::Module
+#include <torch/csrc/jit/frontend/tracer.h>
+#include <torch/serialize.h>
 
 int libTorchTest() {
     std::cout << "======================================" << std::endl;
@@ -153,14 +161,94 @@ int libTorchTest() {
     return 0;
 }
 
+// Define a simple model struct for TorchScript
+struct TinyModelImpl : torch::nn::Module {
+    TinyModelImpl() {
+        fc1 = register_module("fc1", torch::nn::Linear(6, 16));
+        fc2 = register_module("fc2", torch::nn::Linear(16, 1));
+    }
+
+    torch::Tensor forward(torch::Tensor x) {
+        x = torch::relu(fc1->forward(x));
+        x = fc2->forward(x);
+        return x;
+    }
+
+    torch::nn::Linear fc1{nullptr}, fc2{nullptr};
+};
+
+TORCH_MODULE(TinyModel);
+
+static std::string ensureTinyModel(const std::string& modelPath)
+{
+    namespace fs = std::filesystem;
+
+    const fs::path path(modelPath);
+    if (path.has_parent_path()) {
+        fs::create_directories(path.parent_path());
+    }
+
+    if (fs::exists(path)) {
+        return modelPath;
+    }
+
+    std::cout << "[INFO] Creating tiny model..." << std::endl;
+
+    TinyModel model;
+    model->eval();
+
+    // Save using TorchScript serialization via torch::jit::Module
+    // We build a jit::Module manually from the nn::Module parameters
+    torch::jit::script::Module jit_module("TinyModel");
+
+    // Register submodules to match the nn::Module structure
+    auto fc1_jit = torch::jit::script::Module("fc1");
+    fc1_jit.register_parameter("weight", model->fc1->weight.clone(), false);
+    fc1_jit.register_parameter("bias", model->fc1->bias.clone(), false);
+
+    auto fc2_jit = torch::jit::script::Module("fc2");
+    fc2_jit.register_parameter("weight", model->fc2->weight.clone(), false);
+    fc2_jit.register_parameter("bias", model->fc2->bias.clone(), false);
+
+    jit_module.register_module("fc1", fc1_jit);
+    jit_module.register_module("fc2", fc2_jit);
+
+    // Define forward in TorchScript
+    jit_module.define(R"(
+        def forward(self, x):
+            x = torch.matmul(x, self.fc1.weight.t()) + self.fc1.bias
+            x = torch.relu(x)
+            x = torch.matmul(x, self.fc2.weight.t()) + self.fc2.bias
+            return x
+    )");
+
+    jit_module.save(path.string());
+    std::cout << "[SUCCESS] Tiny model saved to: " << path.string() << std::endl;
+
+    return modelPath;
+}
+
 int main() {
-    libTorchTest();
+    // libTorchTest();
+
+    const auto modelPath = ensureTinyModel("models/ai_model.pt");
+    AIModel model(modelPath);
+
+    constexpr State state {
+        21.0,
+        10.0,
+        0.25,
+        2.0,
+        1.2,
+        22.0
+    };
+
+    std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
 
     auto provider = dic::ServiceProviderBuilder()
                         .addService<IClock, SimulationClock>()
                         .addService<Room>()
                         .build();
-
 
     return 0;
 }
