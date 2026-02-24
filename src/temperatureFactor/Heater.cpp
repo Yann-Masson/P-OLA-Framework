@@ -1,6 +1,6 @@
 #include "Heater.hpp"
 
-double Heater::simulate()
+double Heater::simulate(double insideTemperature)
 {
     // TODO: calculate the real value from the wanted temperature
     // ? how to get the wanted temperature ?
@@ -10,5 +10,5 @@ double Heater::simulate()
 
 void Heater::setWantedTemperature(double wantedTemperature)
 {
-	_wantedTemperature = wantedTemperature;
+    _wantedTemperature = wantedTemperature;
 }

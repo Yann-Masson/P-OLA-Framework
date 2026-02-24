@@ -8,8 +8,9 @@
 #pragma once
 #include "ATemperatureFactor.hpp"
 
-class Wall : public ATemperatureFactor {
-    public:
-        using ATemperatureFactor::ATemperatureFactor;
-        double simulate() override;
+class Wall : public ATemperatureFactor
+{
+public:
+    using ATemperatureFactor::ATemperatureFactor;
+    double simulate(double insideTemperature) override;
 };
