@@ -10,13 +10,18 @@
 #include <cppdic/ServiceProvider.hpp>
 #include "../inputService/DataTypes.hpp"
 #include "../inputService/IInputService.hpp"
+#include "../clock/IClock.hpp"
+#include "../temperatureFactor/Heater.hpp"
+
+#define DECIDE_DELAY 1000 // TODO: change this value
 
 class SmartThermostat: public ISmartThermostat {
     public:
         SmartThermostat(dic::ServiceProviderRef provider);
 
-        double decide(double currentTemp) override;
+        void simulate(double currentTemp) override;
 
     private:
+        double decide(double currentTemp);
         dic::ServiceProviderRef _provider;
 };

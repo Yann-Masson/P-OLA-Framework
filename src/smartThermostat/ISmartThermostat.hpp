@@ -10,5 +10,5 @@
 class ISmartThermostat {
     public:
         virtual ~ISmartThermostat() = default;
-        virtual double decide(double currentTemp) = 0;
+        virtual void simulate(double currentTemp) = 0;
 };
