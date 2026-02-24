@@ -1,7 +1,12 @@
 add_library(porygon SHARED)
 
 add_subdirectory(src)
-add_subdirectory(tests)
+
+# Tests are optional - only build if GTest is available
+find_package(GTest QUIET)
+if(GTEST_FOUND)
+    add_subdirectory(tests)
+endif()
 
 target_include_directories(porygon PUBLIC ${CMAKE_CURRENT_LIST_DIR}/src)
 target_include_directories(porygon PUBLIC ${CMAKE_CURRENT_LIST_DIR}/../..)

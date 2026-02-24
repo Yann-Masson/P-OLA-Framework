@@ -13,8 +13,8 @@
 #include <memory>
 #include <typeindex>
 
-#include "src/api.h"
-#include "src/utils/symbols.hpp"
+#include "api.h"
+#include "utils/symbols.hpp"
 
 namespace porygon {
 class DependenciesHandler;

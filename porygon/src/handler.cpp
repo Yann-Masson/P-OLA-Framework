@@ -5,7 +5,7 @@
 ** handler.cpp
 */
 
-#include "./handler.hpp"
+#include "handler.hpp"
 
 using namespace porygon;
 
