@@ -3,21 +3,23 @@
 
 #include "OLA_Agent.hpp"
 #include "ThermalModel.hpp"
-#include <cppdic/ServiceProvider.hpp>
-#include <cppdic/ServiceProviderBuilder.hpp>
+#include <dicnew/ServiceProvider.hpp>
+#include <dicnew/ServiceProviderBuilder.hpp>
 #include "clock/IClock.hpp"
 #include "clock/SimulationClock.hpp"
 #include <torch/script.h>
 #include <iomanip>
-#include "room/Room.hpp"
 #include <chrono>
-#include "temperatureFactor/TemperatureFactorRegistry.hpp"
-#include "consumptionService/ConsumptionService.hpp"
-#include "room/Room.hpp"
 #include "inputService/EnergyPriceService.hpp"
 #include "inputService/WeatherService.hpp"
 #include "inputService/GPSService.hpp"
 #include "inputService/UserPreferenceService.hpp"
+#include "consumptionService/ConsumptionService.hpp"
+#include "temperatureFactor/Heater.hpp"
+#include "temperatureFactor/Wall.hpp"
+#include "temperatureFactor/Window.hpp"
+#include "temperatureFactor/TemperatureFactorRegistry.hpp"
+#include "room/Room.hpp"
 
 int libTorchTest()
 {
@@ -179,26 +181,44 @@ int libTorchTest()
 
 int main()
 {
-    libTorchTest();
+    // libTorchTest();
 
     // std::cout << "========== STARTING OLA SIMULATION ==========\n\n";
     // ThermalModel room(18.0);       // Start room at 18°C
 
-    OLA_Controller smartAgent;
-    auto provider = dic::ServiceProviderBuilder()
+    // OLA_Controller smartAgent;
+    auto provider = dicnew::ServiceProviderBuilder()
                         .addService<IClock, SimulationClock>()
                         .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
                         .addService<IInputService<WeatherData>, WeatherService>()
                         .addService<IInputService<GPSData>, GPSService>()
                         .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
+                        .addService<IConsumptionService, ConsumptionService>()
                         .addService<Heater>()
                         .addService<Wall>()
                         .addService<Window>()
                         .addService<TemperatureFactorRegistry>()
-                        .addService<IConsumptionService, ConsumptionService>()
+                        .addService<Room>()
                         .build();
 
-    Room room(provider, 18.0); // Start room at 18°C
+    std::cout << "Service Provider initialized with services:" << std::endl;
+    std::cout << "Temperature factors registered:" << std::endl;
+    for (const auto& factor : provider.get<TemperatureFactorRegistry>()->getFactors()) {
+        std::cout << " - " << typeid(*factor).name() << std::endl;
+    }
+    std::cout << " - SimulationClock" << std::endl;
+    std::cout << " - EnergyPriceService" << std::endl;
+    std::cout << " - WeatherService" << std::endl;
+    std::cout << " - GPSService" << std::endl;
+    std::cout << " - UserPreferenceService" << std::endl;
+    std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;
+    std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricePerKWh << " per kWh" << std::endl;
+    std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().outTemperature << "°C" << std::endl;
+    std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm  << " km)" << std::endl;
+    std::cout << "User preference service initialized with preferred temperature: " << provider.get<IInputService<UserPreferenceData>>()->getInput().maxTemperature << "°C" << std::endl;
+    std::cout << "Consumption service initialized with total energy: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh and total cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
+
+    auto room = provider.get<Room>();
 
     // double simTime = 0; // Seconds
     // double dt = 60.0;   // 1 minute steps
@@ -210,7 +230,7 @@ int main()
         // // 1. Get External Data (This could be your API calls)
         // double currentPrice = 0.15; // $/kWh
         // double tempOut = 5.0;       // Cold day
-
+        
         // // 2. Prepare the State for the AI
         // State currentState = {
         //     room.getTemp(),
@@ -236,8 +256,8 @@ int main()
         // // Log results for your paper's graphs
         // std::cout << "Time: " << i << "m | Temp: " << room.getTemp()
         //           << " | Cost: $" << totalCost << std::endl;
-        room.simulate();
-        std::cout << "Current Room Temperature: " << room.getTemperature() << "°C" << std::endl;
+        room->simulate();
+        std::cout << "Current Room Temperature: " << room->getTemperature() << "°C" << std::endl;
         std::cout << "Current Total Energy Consumption: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh" << std::endl;
         std::cout << "Current Total Cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
     }

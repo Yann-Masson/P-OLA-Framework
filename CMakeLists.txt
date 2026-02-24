@@ -9,6 +9,7 @@ endif()
 project(P-OLA_Simulator)
 
 add_subdirectory(CppDic)
+add_subdirectory(DicNew)
 
 # --- LIBTORCH CONFIGURATION ---
 set(LIBTORCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch")
@@ -59,12 +60,14 @@ target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
         cppdic
+        dicnew
         "${TORCH_LIBRARIES}"
 )
 
 target_include_directories(${PROJECT_NAME}
     PRIVATE
         CppDic/lib/include
+        DicNew/lib/include
 )
 
 # Required for Windows to find the LibTorch DLLs at runtime

@@ -7,16 +7,17 @@
 
 #pragma once
 #include "IInputService.hpp"
-#include <cppdic/ServiceProvider.hpp>
+#include <dicnew/ServiceProvider.hpp>
 
-template<typename T>
-class AInputService: public IInputService<T> {
-    public:
-        explicit AInputService(dic::ServiceProviderRef provider)
-            : _provider(provider)
-        {
-        }
+template <typename T>
+class AInputService : public IInputService<T>
+{
+public:
+    explicit AInputService(dicnew::ServiceProviderRef provider)
+        : _provider(provider)
+    {
+    }
 
-    protected:
-        dic::ServiceProviderRef _provider;
+protected:
+    dicnew::ServiceProviderRef _provider;
 };

@@ -7,12 +7,12 @@
 
 #pragma once
 #include "ITemperatureFactor.hpp"
-#include <cppdic/ServiceProvider.hpp>
+#include <dicnew/ServiceProvider.hpp>
 
 class ATemperatureFactor : public ITemperatureFactor {
     public:
-        explicit ATemperatureFactor(dic::ServiceProviderRef provider);
+        explicit ATemperatureFactor(dicnew::ServiceProviderRef provider);
 
     protected:
-        dic::ServiceProviderRef _provider;
+        dicnew::ServiceProviderRef _provider;
 };

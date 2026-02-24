@@ -7,21 +7,22 @@
 
 #pragma once
 #include "IConsumptionService.hpp"
-#include <cppdic/ServiceProvider.hpp>
+#include <dicnew/ServiceProvider.hpp>
 #include "../inputService/IInputService.hpp"
 #include "../inputService/DataTypes.hpp"
 
-class ConsumptionService: public IConsumptionService {
-    public:
-        ConsumptionService(dic::ServiceProviderRef provider);
+class ConsumptionService : public IConsumptionService
+{
+public:
+    ConsumptionService(dicnew::ServiceProviderRef provider);
 
-        void recordEnergy(double kWh) override;
-        double getTotalEnergyKWh() const override;
-        double getTotalCost() const override;
-        void reset() override;
+    void recordEnergy(double kWh) override;
+    double getTotalEnergyKWh() const override;
+    double getTotalCost() const override;
+    void reset() override;
 
-    private:
-        dic::ServiceProviderRef _provider;
-        double _totalEnergyKWh = 0.0;
-        double _totalCost = 0.0;
+private:
+    dicnew::ServiceProviderRef _provider;
+    double _totalEnergyKWh = 0.0;
+    double _totalCost = 0.0;
 };

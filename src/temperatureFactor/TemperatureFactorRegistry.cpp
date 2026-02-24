@@ -1,6 +1,6 @@
 #include "TemperatureFactorRegistry.hpp"
 
-TemperatureFactorRegistry::TemperatureFactorRegistry(dic::ServiceProviderRef provider)
+TemperatureFactorRegistry::TemperatureFactorRegistry(dicnew::ServiceProviderRef provider)
     : _factors{provider.get<Heater>(), provider.get<Wall>(),
                provider.get<Window>()}
 {
@@ -8,5 +8,5 @@ TemperatureFactorRegistry::TemperatureFactorRegistry(dic::ServiceProviderRef pro
 
 const std::vector<std::shared_ptr<ITemperatureFactor>> TemperatureFactorRegistry::getFactors() const
 {
-	return _factors;
+    return _factors;
 }
