@@ -1,7 +1,10 @@
-#include <dicnew/ServiceProvider.hpp>
-#include <dicnew/ServiceProviderBuilder.hpp>
+// #include <dicnew/ServiceProvider.hpp>
+// #include <dicnew/ServiceProviderBuilder.hpp>
 #include <iostream>
 #include <memory>
+
+#include "lib/include/dicnew/ServiceProvider.hpp"
+#include "lib/include/dicnew/ServiceProviderBuilder.hpp"
 
 // Example interfaces and implementations
 

@@ -7,7 +7,7 @@
 
 #pragma once
 #include <dicnew/ServiceProvider.hpp>
-#include "../temperatureFactor/TemperatureFactorRegistry.hpp"
+#include "../temperatureFactor/ITemperatureFactor.hpp"
 #include <iostream>
 
 class Room

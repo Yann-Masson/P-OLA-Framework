@@ -122,6 +122,100 @@ namespace dicnew
             return *this;
         }
 
+        // ===== Multi-Service Registration =====
+
+        /**
+         * Register a concrete service into a multi-service collection (no interface)
+         * Multiple instances of the same type can be registered and retrieved with getAll<T>()
+         *
+         * @tparam TImpl The concrete implementation type
+         * @return Reference to this builder for chaining
+         */
+        template <typename TImpl>
+        ServiceProviderBuilder &addMultiService()
+        {
+            static_assert(!std::is_abstract_v<TImpl>,
+                          "Cannot instantiate abstract class. Use addMultiService<TInterface, TImpl>() instead.");
+
+            deferredConstructors.push_back([this]()
+                                           {
+            auto instance = createInstance<TImpl>();
+            provider.pImpl->registerMultiService<TImpl>(instance); });
+
+            return *this;
+        }
+
+        /**
+         * Register a service with an interface into a multi-service collection
+         * Multiple implementations of the same interface can be registered
+         * and retrieved with getAll<TInterface>()
+         *
+         * @tparam TInterface The interface/base type
+         * @tparam TImpl The concrete implementation type
+         * @return Reference to this builder for chaining
+         */
+        template <typename TInterface, typename TImpl>
+        ServiceProviderBuilder &addMultiService()
+        {
+            static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
+                          "TImpl must inherit from TInterface or be the same type");
+            static_assert(!std::is_abstract_v<TImpl>,
+                          "TImpl cannot be abstract");
+
+            deferredConstructors.push_back([this]()
+                                           {
+            auto instance = createInstance<TImpl>();
+            provider.pImpl->registerMultiService<TInterface>(
+                std::static_pointer_cast<TInterface>(instance)
+            ); });
+
+            return *this;
+        }
+
+        /**
+         * Register a pre-constructed service instance into a multi-service collection
+         *
+         * @tparam T The type of the service
+         * @param instance Pre-constructed shared pointer to the service
+         * @return Reference to this builder for chaining
+         */
+        template <typename T>
+        ServiceProviderBuilder &addMultiService(std::shared_ptr<T> instance)
+        {
+            if (!instance)
+            {
+                throw std::runtime_error("Cannot register null service instance");
+            }
+
+            provider.pImpl->registerMultiService<T>(instance);
+            return *this;
+        }
+
+        /**
+         * Register a service with interface and pre-constructed instance
+         * into a multi-service collection
+         *
+         * @tparam TInterface The interface/base type
+         * @tparam TImpl The concrete implementation type
+         * @param instance Pre-constructed shared pointer to the service
+         * @return Reference to this builder for chaining
+         */
+        template <typename TInterface, typename TImpl>
+        ServiceProviderBuilder &addMultiService(std::shared_ptr<TImpl> instance)
+        {
+            static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
+                          "TImpl must inherit from TInterface or be the same type");
+
+            if (!instance)
+            {
+                throw std::runtime_error("Cannot register null service instance");
+            }
+
+            provider.pImpl->registerMultiService<TInterface>(
+                std::static_pointer_cast<TInterface>(instance));
+            return *this;
+        }
+
         /**
          * Build and finalize the ServiceProvider
          * Constructs all deferred services with dependency injection

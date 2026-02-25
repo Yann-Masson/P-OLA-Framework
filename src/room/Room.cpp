@@ -16,16 +16,17 @@ double Room::getTemperature() const
 
 void Room::simulate()
 {
-	if (_provider.has<TemperatureFactorRegistry>())
+	auto factors = _provider.getAll<ITemperatureFactor>();
+	if (!factors.empty())
 	{
-		std::cout << "Simulating room with " << _provider.get<TemperatureFactorRegistry>()->getFactors().size() << " temperature factors." << std::endl;
-		for (auto &service : _provider.get<TemperatureFactorRegistry>()->getFactors())
+		std::cout << "Simulating room with " << factors.size() << " temperature factors." << std::endl;
+		for (auto &service : factors)
 		{
 			_temperature += service->simulate();
 		}
 	}
 	else
 	{
-		std::cout << "No TemperatureFactorRegistry found in provider!" << std::endl;
+		std::cout << "No temperature factors found in provider!" << std::endl;
 	}
 }

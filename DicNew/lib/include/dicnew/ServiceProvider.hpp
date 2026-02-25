@@ -5,6 +5,7 @@
 #include <typeindex>
 #include <stdexcept>
 #include <string>
+#include <vector>
 
 namespace dicnew
 {
@@ -18,11 +19,21 @@ namespace dicnew
         // Map of type_index to service instance
         std::unordered_map<std::type_index, std::shared_ptr<void>> services;
 
+        // Map of type_index to multiple service instances (for multi-service registration)
+        std::unordered_map<std::type_index, std::vector<std::shared_ptr<void>>> multiServices;
+
         template <typename T>
         void registerService(std::shared_ptr<T> instance)
         {
             std::type_index typeIdx(typeid(T));
             services[typeIdx] = std::static_pointer_cast<void>(instance);
+        }
+
+        template <typename T>
+        void registerMultiService(std::shared_ptr<T> instance)
+        {
+            std::type_index typeIdx(typeid(T));
+            multiServices[typeIdx].push_back(std::static_pointer_cast<void>(instance));
         }
     };
 
@@ -59,6 +70,14 @@ namespace dicnew
          */
         template <typename T>
         bool has() const;
+
+        /**
+         * Get all services registered under a given interface type
+         * @tparam T The interface type
+         * @return Vector of shared pointers to all registered instances
+         */
+        template <typename T>
+        std::vector<std::shared_ptr<T>> getAll() const;
 
     private:
         explicit ServiceProviderRef(std::shared_ptr<ServiceProviderImpl> impl) : pImpl(impl) {}
@@ -130,6 +149,31 @@ namespace dicnew
         }
 
         /**
+         * Get all services registered under a given interface type
+         * @tparam T The interface type
+         * @return Vector of shared pointers to all registered instances
+         */
+        template <typename T>
+        std::vector<std::shared_ptr<T>> getAll() const
+        {
+            std::type_index typeIdx(typeid(T));
+            auto it = pImpl->multiServices.find(typeIdx);
+
+            if (it == pImpl->multiServices.end())
+            {
+                return {};
+            }
+
+            std::vector<std::shared_ptr<T>> result;
+            result.reserve(it->second.size());
+            for (const auto &svc : it->second)
+            {
+                result.push_back(std::static_pointer_cast<T>(svc));
+            }
+            return result;
+        }
+
+        /**
          * Create a lightweight reference to this provider
          * @return ServiceProviderRef that can be passed to constructors
          */
@@ -197,5 +241,31 @@ namespace dicnew
         std::type_index typeIdx(typeid(T));
         return pImpl->services.find(typeIdx) != pImpl->services.end();
     }
+
+    template <typename T>
+    std::vector<std::shared_ptr<T>> ServiceProviderRef::getAll() const
+    {
+        if (!pImpl)
+        {
+            return {};
+        }
+
+        std::type_index typeIdx(typeid(T));
+        auto it = pImpl->multiServices.find(typeIdx);
+
+        if (it == pImpl->multiServices.end())
+        {
+            return {};
+        }
+
+        std::vector<std::shared_ptr<T>> result;
+        result.reserve(it->second.size());
+        for (const auto &svc : it->second)
+        {
+            result.push_back(std::static_pointer_cast<T>(svc));
+        }
+        return result;
+    }
+
 
 } // namespace dicnew
