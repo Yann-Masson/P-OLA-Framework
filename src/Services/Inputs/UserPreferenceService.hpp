@@ -7,7 +7,7 @@
 
 #pragma once
 #include "AInputService.hpp"
-#include "DataTypes.hpp"
+#include "../../Common/DataTypes.hpp"
 
 class UserPreferenceService : public AInputService<UserPreferenceData>
 {

@@ -13,7 +13,7 @@ struct EnergyPriceData {
 
 struct WeatherData {
     double outTemperature;
-    double enlightment;
+    double sunlightIntensity; // in W/m²
 };
 
 struct UserPreferenceData {

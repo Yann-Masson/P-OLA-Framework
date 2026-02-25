@@ -9,7 +9,7 @@
 
 #include <forge/provider.hpp>
 
-#include "IConsumptionService.hpp"
+#include "../Interfaces/IConsumptionService.hpp"
 
 class ConsumptionService : public IConsumptionService
 {

@@ -25,39 +25,39 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/clock/IClock.hpp
-        src/clock/SimulationClock.cpp
-        src/clock/SimulationClock.hpp
-        src/consumptionService/IConsumptionService.hpp
-        src/consumptionService/ConsumptionService.cpp
-        src/consumptionService/ConsumptionService.hpp
-        src/temperatureFactor/ITemperatureFactor.hpp
-        src/temperatureFactor/ATemperatureFactor.hpp
-        src/temperatureFactor/ATemperatureFactor.cpp
-        src/temperatureFactor/Heater.hpp
-        src/temperatureFactor/Heater.cpp
-        src/temperatureFactor/Wall.hpp
-        src/temperatureFactor/Wall.cpp
-        src/temperatureFactor/Window.hpp
-        src/temperatureFactor/Window.cpp
-        src/inputService/AInputService.hpp
-        src/inputService/EnergyPriceService.cpp
-        src/inputService/EnergyPriceService.hpp
-        src/inputService/GPSService.cpp
-        src/inputService/GPSService.hpp
-        src/inputService/IInputService.hpp
-        src/inputService/UserPreferenceService.cpp
-        src/inputService/UserPreferenceService.hpp
-        src/inputService/WeatherService.cpp
-        src/inputService/WeatherService.hpp
-        src/inputService/DataTypes.hpp
-        src/model/IAIModel.hpp
-        src/model/RuleBasedModel.cpp
-        src/model/RuleBasedModel.hpp
-        src/model/AIModel.cpp
-        src/model/AIModel.hpp
-        src/room/Room.cpp
-        src/room/Room.hpp
+        src/Interfaces/IClock.hpp
+        src/Services/Clock.cpp
+        src/Services/Clock.hpp
+        src/Interfaces/IConsumptionService.hpp
+        src/Services/ConsumptionService.cpp
+        src/Services/ConsumptionService.hpp
+        src/Interfaces/ITemperatureFactor.hpp
+        src/Simulation/TemperatureFactor/ATemperatureFactor.hpp
+        src/Simulation/TemperatureFactor/ATemperatureFactor.cpp
+        src/Simulation/TemperatureFactor/Heater.hpp
+        src/Simulation/TemperatureFactor/Heater.cpp
+        src/Simulation/TemperatureFactor/Wall.hpp
+        src/Simulation/TemperatureFactor/Wall.cpp
+        src/Simulation/TemperatureFactor/Window.hpp
+        src/Simulation/TemperatureFactor/Window.cpp
+        src/Services/Inputs/AInputService.hpp
+        src/Services/Inputs/EnergyPriceService.cpp
+        src/Services/Inputs/EnergyPriceService.hpp
+        src/Services/Inputs/GPSService.cpp
+        src/Services/Inputs/GPSService.hpp
+        src/Interfaces/IInputService.hpp
+        src/Services/Inputs/UserPreferenceService.cpp
+        src/Services/Inputs/UserPreferenceService.hpp
+        src/Services/Inputs/WeatherService.cpp
+        src/Services/Inputs/WeatherService.hpp
+        src/Common/DataTypes.hpp
+        src/Interfaces/IAIModel.hpp
+        src/Models/RuleBasedModel.cpp
+        src/Models/RuleBasedModel.hpp
+        src/Models/AIModel.cpp
+        src/Models/AIModel.hpp
+        src/Simulation/Room/Room.cpp
+        src/Simulation/Room/Room.hpp
 )
 
 target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)

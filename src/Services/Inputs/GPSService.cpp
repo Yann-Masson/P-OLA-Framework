@@ -1,4 +1,4 @@
-#include "GPSService.hpp"
+#include "../../inputService/GPSService.hpp"
 
 GPSData GPSService::getInput()
 {

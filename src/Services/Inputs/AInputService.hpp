@@ -6,7 +6,7 @@
 */
 
 #pragma once
-#include "IInputService.hpp"
+#include "../../Interfaces/IInputService.hpp"
 #include <forge/provider.hpp>
 
 template <typename T>

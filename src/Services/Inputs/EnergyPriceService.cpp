@@ -1,4 +1,4 @@
-#include "EnergyPriceService.hpp"
+#include "../../inputService/EnergyPriceService.hpp"
 
 EnergyPriceData EnergyPriceService::getInput()
 {

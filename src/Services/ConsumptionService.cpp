@@ -1,7 +1,7 @@
 #include "ConsumptionService.hpp"
 
-#include "../inputService/IInputService.hpp"
-#include "../inputService/DataTypes.hpp"
+#include "../Interfaces/IInputService.hpp"
+#include "../Common/DataTypes.hpp"
 
 ConsumptionService::ConsumptionService(forge::ProviderRef provider) : _provider(provider)
 {

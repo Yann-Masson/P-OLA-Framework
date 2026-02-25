@@ -2,17 +2,17 @@
 ** EPITECH PROJECT, 2026
 ** P-OLA-Framework
 ** File description:
-** SimulationClock
+** Clock
 */
 
 #pragma once
-#include "IClock.hpp"
+#include "../Interfaces/IClock.hpp"
 #include <chrono>
 
-class SimulationClock : public IClock
+class Clock : public IClock
 {
 public:
-    SimulationClock();
+    Clock();
     void simulate() override;
     double elapsedTimeSinceStart() const override;
     double getElapsedTime() const override;

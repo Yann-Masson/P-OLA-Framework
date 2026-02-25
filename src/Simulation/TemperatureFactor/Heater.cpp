@@ -1,6 +1,6 @@
 #include "Heater.hpp"
 
-#include "../consumptionService/IConsumptionService.hpp"
+#include "../Interfaces/IConsumptionService.hpp"
 
 double Heater::simulate(double insideTemperature)
 {

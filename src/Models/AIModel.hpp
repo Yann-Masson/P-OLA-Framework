@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "IAIModel.hpp"
+#include "../Interfaces/IAIModel.hpp"
 #include <string>
 #include <torch/script.h>
 

@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include "ITemperatureFactor.hpp"
+#include "../../Interfaces/ITemperatureFactor.hpp"
 #include <forge/provider.hpp>
 
 class ATemperatureFactor : public ITemperatureFactor {

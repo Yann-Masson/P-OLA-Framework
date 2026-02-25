@@ -3,7 +3,7 @@
 //
 
 #pragma once
-#include "IAIModel.hpp"
+#include "../Interfaces/IAIModel.hpp"
 
 class RuleBasedModel : public IAIModel
 {
