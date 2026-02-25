@@ -7,12 +7,13 @@
 
 #pragma once
 
-class ITemperatureFactor {
-    public:
-        virtual ~ITemperatureFactor() = default;
+class ITemperatureFactor
+{
+public:
+    virtual ~ITemperatureFactor() = default;
 
-        virtual double simulate() = 0;
+    virtual double simulate(double insideTemperature) = 0;
 
-    protected:
-    private:
+protected:
+private:
 };

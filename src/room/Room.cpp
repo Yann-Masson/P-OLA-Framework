@@ -18,6 +18,6 @@ double Room::getTemperature() const
 void Room::simulate()
 {
 	for (auto &service : _provider.get<TemperatureFactorRegistry>()->getFactors()) {
-		_temperature += service->simulate();
+		_temperature += service->simulate(_temperature);
 	}
 }
