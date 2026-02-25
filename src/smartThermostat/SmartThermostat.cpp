@@ -9,7 +9,7 @@ double SmartThermostat::decide(double currentTemp)
 {
     auto clock = _provider.get<IClock>()->getElapsedTime();
     if (clock < DECIDE_DELAY) {
-        return currentTemp;
+        return -1.0;
     }
 
     // Aggregation of data from input services
@@ -25,6 +25,9 @@ double SmartThermostat::decide(double currentTemp)
 void SmartThermostat::simulate(double currentTemp)
 {
     double wantedTemp = decide(currentTemp);
+    if (wantedTemp < 0) {
+        return;
+    }
     auto heater = _provider.get<Heater>();
     heater->setWantedTemperature(wantedTemp);
 }
