@@ -11,7 +11,7 @@
 
 namespace fs = std::filesystem;
 
-namespace POLA::Models {
+using namespace POLA::Models;
 
 AIModel::AIModel(std::string modelPath)
     : _modelPath(std::move(modelPath))
@@ -73,5 +73,3 @@ double AIModel::predict(const Common::AIState& state)
     auto output = _module.forward({input}).toTensor();
     return output.squeeze().item<double>();
 }
-
-} // namespace POLA::Models

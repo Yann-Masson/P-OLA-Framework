@@ -14,7 +14,7 @@
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
 
-namespace POLA::Simulation {
+using namespace POLA::Simulation;
 
 SmartThermostat::SmartThermostat(const forge::ProviderRef& provider):
     _provider(provider)
@@ -56,5 +56,3 @@ void SmartThermostat::simulate(const double currentTemp)
     auto heater = _provider.get<TemperatureFactor::Heater>();
     heater->setWantedTemperature(wantedTemp);
 }
-
-} // namespace POLA::Simulation

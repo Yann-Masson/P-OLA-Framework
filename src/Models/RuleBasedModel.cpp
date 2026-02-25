@@ -5,7 +5,7 @@
 
 #include "RuleBasedModel.hpp"
 
-namespace POLA::Models {
+using namespace POLA::Models;
 
 double RuleBasedModel::predict(const Common::AIState& state)
 {
@@ -18,5 +18,3 @@ double RuleBasedModel::predict(const Common::AIState& state)
         return 0.5; // Moderate energy consumption
     }
 }
-
-} // namespace POLA::Models

@@ -5,7 +5,7 @@
 
 #include "Wall.hpp"
 
-namespace POLA::Simulation::TemperatureFactor {
+using namespace POLA::Simulation::TemperatureFactor;
 
 double Wall::simulate(double insideTemperature)
 {
@@ -13,4 +13,3 @@ double Wall::simulate(double insideTemperature)
     return -2.0;
 }
 
-} // namespace POLA::Simulation::TemperatureFactor

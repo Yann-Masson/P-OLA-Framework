@@ -136,7 +136,7 @@ int main() {
     std::cout << "Service Provider initialized with services:" << std::endl;
     std::cout << "Temperature factors registered:" << std::endl;
     for (const auto& factor : provider.getAll<ITemperatureFactor>()) {
-        std::cout << " - " << typeid(factor.get()).name() << std::endl;
+        std::cout << " - " << typeid(*factor).name() << std::endl;
     }
 
     std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;

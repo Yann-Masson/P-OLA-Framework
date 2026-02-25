@@ -7,7 +7,7 @@
 
 #include "Interfaces/IConsumptionService.hpp"
 
-namespace POLA::Simulation::TemperatureFactor {
+using namespace POLA::Simulation::TemperatureFactor;
 
 double Heater::simulate(double insideTemperature)
 {
@@ -20,5 +20,3 @@ void Heater::setWantedTemperature(const double wantedTemperature)
 {
     _wantedTemperature = wantedTemperature;
 }
-
-} // namespace POLA::Simulation::TemperatureFactor

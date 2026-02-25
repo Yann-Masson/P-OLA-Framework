@@ -9,7 +9,7 @@
 
 #include "Interfaces/ITemperatureFactor.hpp"
 
-namespace POLA::Simulation {
+using namespace POLA::Simulation;
 
 Room::Room(const forge::ProviderRef& provider, const double startingTemperature) : _temperature(startingTemperature),
                                                                                    _provider(provider)
@@ -37,5 +37,3 @@ void Room::simulate()
         std::cout << "No temperature factors found in provider!" << std::endl;
     }
 }
-
-} // namespace POLA::Simulation

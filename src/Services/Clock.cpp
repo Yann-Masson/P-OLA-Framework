@@ -5,7 +5,7 @@
 
 #include "Clock.hpp"
 
-namespace POLA::Services {
+using namespace POLA::Services;
 
 Clock::Clock()
 {
@@ -30,5 +30,3 @@ double Clock::getElapsedTime() const
 {
     return _elapsedTime;
 }
-
-} // namespace POLA::Services

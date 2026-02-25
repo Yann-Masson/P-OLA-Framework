@@ -5,10 +5,8 @@
 
 #include "ATemperatureFactor.hpp"
 
-namespace POLA::Simulation::TemperatureFactor {
+using namespace POLA::Simulation::TemperatureFactor;
 
 ATemperatureFactor::ATemperatureFactor(const forge::ProviderRef& provider) : _provider(provider)
 {
 }
-
-} // namespace POLA::Simulation::TemperatureFactor

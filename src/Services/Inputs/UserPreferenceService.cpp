@@ -5,14 +5,13 @@
 
 #include "UserPreferenceService.hpp"
 
-namespace POLA::Services::Inputs {
+using namespace POLA::Common;
+using namespace POLA::Services::Inputs;
 
-Common::UserPreferenceData UserPreferenceService::getInput()
+UserPreferenceData UserPreferenceService::getInput()
 {
     return {
         .minTemperature = 22.0,
         .maxTemperature = 28.0
     };
 }
-
-} // namespace POLA::Services::Inputs

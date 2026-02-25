@@ -5,15 +5,13 @@
 
 #include "WeatherService.hpp"
 
-namespace POLA::Services::Inputs {
+using namespace POLA::Common;
+using namespace POLA::Services::Inputs;
 
-Common::WeatherData WeatherService::getInput()
+WeatherData WeatherService::getInput()
 {
     return {
         .outTemperature = 20.0,
         .sunlightIntensity = 1000.0
     };
 }
-
-} // namespace POLA::Services::Inputs
-

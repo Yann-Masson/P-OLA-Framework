@@ -5,7 +5,7 @@
 
 #include "Window.hpp"
 
-namespace POLA::Simulation::TemperatureFactor {
+using namespace POLA::Simulation::TemperatureFactor;
 
 double Window::simulate(double insideTemperature)
 {
@@ -13,4 +13,3 @@ double Window::simulate(double insideTemperature)
     return -5.0;
 }
 
-} // namespace POLA::Simulation::TemperatureFactor

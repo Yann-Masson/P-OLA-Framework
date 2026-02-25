@@ -8,7 +8,7 @@
 #include "Interfaces/IInputService.hpp"
 #include "Common/DataTypes.hpp"
 
-namespace POLA::Services {
+using namespace POLA::Services;
 
 ConsumptionService::ConsumptionService(const forge::ProviderRef& provider) : _provider(provider)
 {
@@ -36,5 +36,3 @@ void ConsumptionService::reset()
     _totalEnergyKWh = 0.0;
     _totalCost = 0.0;
 }
-
-} // namespace POLA::Services
