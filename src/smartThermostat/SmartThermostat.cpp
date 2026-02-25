@@ -17,9 +17,16 @@ double SmartThermostat::decide(double currentTemp)
     WeatherData weather = _provider.get<IInputService<WeatherData>>()->getInput();
     UserPreferenceData userPref = _provider.get<IInputService<UserPreferenceData>>()->getInput();
     GPSData gps = _provider.get<IInputService<GPSData>>()->getInput();
-    // TODO: construct the state object with the collected data
-    // auto aiModel = _provider.get<AIModel>();
-    // return aiModel->predict(/* state object */);
+    State state{
+        currentTemp,
+        weather.outTemperature,
+        energyPrice.pricePerKWh,
+        gps.distanceKm,
+        gps.velocityKmMin,
+        (userPref.minTemperature + userPref.maxTemperature) / 2.0
+    };
+    auto aiModel = _provider.get<IAIModel>();
+    return aiModel->predict(state);
 }
 
 void SmartThermostat::simulate(double currentTemp)

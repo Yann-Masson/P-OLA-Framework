@@ -12,6 +12,7 @@
 #include "../inputService/IInputService.hpp"
 #include "../clock/IClock.hpp"
 #include "../temperatureFactor/Heater.hpp"
+#include "../model/IAIModel.hpp"
 
 #define DECIDE_DELAY 1000 // TODO: change this value
 
