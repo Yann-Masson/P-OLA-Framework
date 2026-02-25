@@ -7,7 +7,6 @@
 
 #pragma once
 #include "ATemperatureFactor.hpp"
-#include "../consumptionService/IConsumptionService.hpp"
 
 class Heater : public ATemperatureFactor
 {

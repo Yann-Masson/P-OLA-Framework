@@ -1,8 +1,11 @@
 #include "Room.hpp"
 
-Room::Room(dic::ServiceProviderRef provider, double startingTemperature):
-	_temperature(startingTemperature),
-	_provider(provider)
+#include <iostream>
+
+#include "../temperatureFactor/ITemperatureFactor.hpp"
+
+Room::Room(const forge::ProviderRef& provider, const double startingTemperature) : _temperature(startingTemperature),
+                                                                      _provider(provider)
 {
 }
 
@@ -17,7 +20,17 @@ double Room::getTemperature() const
 
 void Room::simulate()
 {
-	for (auto &service : _provider.get<TemperatureFactorRegistry>()->getFactors()) {
-		_temperature += service->simulate(_temperature);
+	const auto factors = _provider.getAll<ITemperatureFactor>();
+	if (!factors.empty())
+	{
+		std::cout << "Simulating room with " << factors.size() << " temperature factors." << std::endl;
+		for (auto &service : factors)
+		{
+			_temperature += service->simulate(_temperature);
+		}
+	}
+	else
+	{
+		std::cout << "No temperature factors found in provider!" << std::endl;
 	}
 }

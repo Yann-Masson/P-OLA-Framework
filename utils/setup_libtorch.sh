@@ -9,7 +9,7 @@ echo ""
 # LibTorch download URL (macOS ARM64 CPU version)
 URL="https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.10.0.zip"
 ZIP_FILE="libtorch-macos-arm64-2.10.0.zip"
-LIBTORCH_DIR="libtorch"
+LIBTORCH_DIR="libs/libtorch"
 
 # Check if zip file already exists
 if [ ! -f "$ZIP_FILE" ]; then

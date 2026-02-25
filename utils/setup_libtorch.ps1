@@ -22,7 +22,7 @@ Write-Host "`nNote: Using LibTorch with CUDA 13.0" -ForegroundColor Cyan
 
 $url = "https://download.pytorch.org/libtorch/cu130/libtorch-win-shared-with-deps-2.10.0%2Bcu130.zip"
 $zipFile = "libtorch-shared-with-deps.zip"
-$libtorchDir = "libtorch"
+$libtorchDir = "libs/libtorch"
 
 # Check if zip file already exists
 if (-Not (Test-Path $zipFile)) {

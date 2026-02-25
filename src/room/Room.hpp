@@ -6,18 +6,19 @@
 */
 
 #pragma once
-#include <cppdic/ServiceProvider.hpp>
-#include "../temperatureFactor/TemperatureFactorRegistry.hpp"
 
-class Room {
-    public:
-        Room(dic::ServiceProviderRef provider, double startingTemperature = 20.0);
-        ~Room();
+#include <forge/provider.hpp>
 
-        double getTemperature() const;
-        void simulate();
+class Room
+{
+public:
+    Room(const forge::ProviderRef& provider, double startingTemperature = 20.0);
+    ~Room();
 
-    private:
-        double _temperature;
-        dic::ServiceProviderRef _provider;
+    double getTemperature() const;
+    void simulate();
+
+private:
+    double _temperature;
+    forge::ProviderRef _provider;
 };

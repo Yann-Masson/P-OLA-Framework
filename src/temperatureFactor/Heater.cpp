@@ -1,5 +1,7 @@
 #include "Heater.hpp"
 
+#include "../consumptionService/IConsumptionService.hpp"
+
 double Heater::simulate(double insideTemperature)
 {
     // TODO: calculate the real value from the wanted temperature
@@ -7,7 +9,7 @@ double Heater::simulate(double insideTemperature)
     return 5.0;
 }
 
-void Heater::setWantedTemperature(double wantedTemperature)
+void Heater::setWantedTemperature(const double wantedTemperature)
 {
     _wantedTemperature = wantedTemperature;
 }

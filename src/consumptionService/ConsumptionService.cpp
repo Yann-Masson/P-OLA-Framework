@@ -1,7 +1,9 @@
 #include "ConsumptionService.hpp"
 
-ConsumptionService::ConsumptionService(dic::ServiceProviderRef provider):
-	_provider(provider)
+#include "../inputService/IInputService.hpp"
+#include "../inputService/DataTypes.hpp"
+
+ConsumptionService::ConsumptionService(forge::ProviderRef provider) : _provider(provider)
 {
 }
 
