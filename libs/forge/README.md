@@ -1,3 +1,5 @@
+![Forge Logo](./assets/forge.png)
+
 # Forge - Simple Dependency Injection Container
 
 A lightweight, header-only C++20 dependency injection container for managing service lifecycles and dependencies.
