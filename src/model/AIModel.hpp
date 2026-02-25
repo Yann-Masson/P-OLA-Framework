@@ -16,8 +16,8 @@ public:
 private:
     void ensureLoaded();
 
-    torch::jit::script::Module module_;
-    std::string modelPath_;
-    bool loaded_ = false;
-    torch::Device device_ = torch::kCPU;
+    torch::jit::script::Module _module;
+    std::string _modelPath;
+    bool _loaded = false;
+    torch::Device _device = torch::kCPU;
 };

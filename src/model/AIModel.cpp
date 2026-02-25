@@ -9,20 +9,20 @@
 #include <torch/torch.h>
 
 AIModel::AIModel(std::string modelPath)
-    : modelPath_(std::move(modelPath))
+    : _modelPath(std::move(modelPath))
 {
 }
 
 void AIModel::ensureLoaded()
 {
-    if (loaded_) {
+    if (_loaded) {
         return;
     }
 
     namespace fs = std::filesystem;
 
     try {
-        const fs::path modelPath(modelPath_);
+        const fs::path modelPath(_modelPath);
         if (modelPath.has_parent_path()) {
             fs::create_directories(modelPath.parent_path());
         }
@@ -32,21 +32,21 @@ void AIModel::ensureLoaded()
             throw std::runtime_error("Model file not found");
         }
 
-        module_ = torch::jit::load(modelPath.string());
-        module_.eval();
+        _module = torch::jit::load(modelPath.string());
+        _module.eval();
 
         // Move to GPU if available
         if (torch::cuda::is_available()) {
-            module_.to(torch::kCUDA);
-            device_ = torch::kCUDA;
+            _module.to(torch::kCUDA);
+            _device = torch::kCUDA;
         } else if (torch::mps::is_available()) {
-            module_.to(torch::kMPS);
-            device_ = torch::kMPS;
+            _module.to(torch::kMPS);
+            _device = torch::kMPS;
         } else {
-            device_ = torch::kCPU;
+            _device = torch::kCPU;
         }
 
-        loaded_ = true;
+        _loaded = true;
     } catch (const c10::Error& e) {
         std::cerr << "[AIModel] Failed to load model: " << e.what() << std::endl;
         throw;
@@ -65,8 +65,8 @@ double AIModel::predict(const State& state)
         static_cast<float>(state.gpsDistance),
         static_cast<float>(state.userVelocity),
         static_cast<float>(state.targetTemp)
-    }}, torch::TensorOptions().dtype(torch::kFloat32).device(device_));
+    }}, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
 
-    auto output = module_.forward({input}).toTensor();
+    auto output = _module.forward({input}).toTensor();
     return output.squeeze().item<double>();
 }
