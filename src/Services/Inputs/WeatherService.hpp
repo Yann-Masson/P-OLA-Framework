@@ -1,20 +1,20 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** WeatherService
-*/
+/**
+ * @file WeatherService.hpp
+ * @brief Service providing outdoor weather and sunlight data.
+ */
 
 #pragma once
-#include "AInputService.hpp"
-#include "../../Common/DataTypes.hpp"
 
-class WeatherService : public AInputService<WeatherData>
+#include "AInputService.hpp"
+#include "Common/DataTypes.hpp"
+
+namespace POLA::Services::Inputs {
+
+class WeatherService : public AInputService<Common::WeatherData>
 {
 public:
-    using AInputService<WeatherData>::AInputService;
-    WeatherData getInput() override;
-
-protected:
-private:
+    using AInputService<Common::WeatherData>::AInputService;
+    Common::WeatherData getInput() override;
 };
+
+} // namespace POLA::Services::Inputs

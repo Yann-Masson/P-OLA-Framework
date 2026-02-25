@@ -1,11 +1,11 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** DataTypes
-*/
+/**
+ * @file DataTypes.hpp
+ * @brief Common data structures used across services for sensor and user data.
+ */
 
 #pragma once
+
+namespace POLA::Common {
 
 struct EnergyPriceData {
     double pricePerKWh;
@@ -25,3 +25,6 @@ struct GPSData {
     double distanceKm;
     double velocityKmMin;
 };
+
+} // namespace POLA::Common
+

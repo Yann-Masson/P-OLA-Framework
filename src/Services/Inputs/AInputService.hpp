@@ -1,19 +1,20 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** AInputService
-*/
+/**
+ * @file AInputService.hpp
+ * @brief Abstract base class for input services, providing DI provider access.
+ */
 
 #pragma once
-#include "../../Interfaces/IInputService.hpp"
+
 #include <forge/provider.hpp>
+#include "Interfaces/IInputService.hpp"
+
+namespace POLA::Services::Inputs {
 
 template <typename T>
-class AInputService : public IInputService<T>
+class AInputService : public Interfaces::IInputService<T>
 {
 public:
-    explicit AInputService(forge::ProviderRef provider)
+    explicit AInputService(const forge::ProviderRef& provider)
         : _provider(provider)
     {
     }
@@ -21,3 +22,6 @@ public:
 protected:
     forge::ProviderRef _provider;
 };
+
+} // namespace POLA::Services::Inputs
+

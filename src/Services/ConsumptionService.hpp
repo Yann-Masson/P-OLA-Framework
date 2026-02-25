@@ -1,24 +1,24 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** ConsumptionService
-*/
+/**
+ * @file ConsumptionService.hpp
+ * @brief Service for recording and tracking energy consumption and costs.
+ */
 
 #pragma once
 
 #include <forge/provider.hpp>
 
-#include "../Interfaces/IConsumptionService.hpp"
+#include "Interfaces/IConsumptionService.hpp"
 
-class ConsumptionService : public IConsumptionService
+namespace POLA::Services {
+
+class ConsumptionService : public Interfaces::IConsumptionService
 {
 public:
-    ConsumptionService(forge::ProviderRef provider);
+    explicit ConsumptionService(const forge::ProviderRef& provider);
 
     void recordEnergy(double kWh) override;
-    double getTotalEnergyKWh() const override;
-    double getTotalCost() const override;
+    [[nodiscard]] double getTotalEnergyKWh() const override;
+    [[nodiscard]] double getTotalCost() const override;
     void reset() override;
 
 private:
@@ -26,3 +26,5 @@ private:
     double _totalEnergyKWh = 0.0;
     double _totalCost = 0.0;
 };
+
+} // namespace POLA::Services

@@ -1,19 +1,21 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** ATemperatureFactor
-*/
+/**
+ * @file ATemperatureFactor.hpp
+ * @brief Abstract base class for temperature factors affecting room temperature.
+ */
 
 #pragma once
 
-#include "../../Interfaces/ITemperatureFactor.hpp"
+#include "Interfaces/ITemperatureFactor.hpp"
 #include <forge/provider.hpp>
 
-class ATemperatureFactor : public ITemperatureFactor {
-    public:
-        explicit ATemperatureFactor(forge::ProviderRef provider);
+namespace POLA::Simulation::TemperatureFactor {
 
-    protected:
-        forge::ProviderRef _provider;
+class ATemperatureFactor : public Interfaces::ITemperatureFactor {
+public:
+    explicit ATemperatureFactor(const forge::ProviderRef& provider);
+
+protected:
+    forge::ProviderRef _provider;
 };
+
+} // namespace POLA::Simulation::TemperatureFactor

@@ -1,28 +1,26 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** SmartThermostat
-*/
+/**
+ * @file SmartThermostat.hpp
+ * @brief Smart thermostat controller that decides heating levels using AI or rules.
+ */
 
 #pragma once
-#include "ISmartThermostat.hpp"
-#include <cppdic/ServiceProvider.hpp>
-#include "../Common/DataTypes.hpp"
-#include "../inputService/IInputService.hpp"
-#include "../clock/IClock.hpp"
-#include "../temperatureFactor/Heater.hpp"
-#include "../Model/IAIModel.hpp"
+
+#include "Interfaces/ISmartThermostat.hpp"
+#include <forge/provider.hpp>
 
 #define DECIDE_DELAY 1000 // TODO: change this value
 
-class SmartThermostat: public ISmartThermostat {
-    public:
-        SmartThermostat(dic::ServiceProviderRef provider);
+namespace POLA::Simulation {
 
-        void simulate(double currentTemp) override;
+class SmartThermostat : public Interfaces::ISmartThermostat {
+public:
+    explicit SmartThermostat(const forge::ProviderRef& provider);
 
-    private:
-        double decide(double currentTemp);
-        dic::ServiceProviderRef _provider;
+    void simulate(double currentTemp) override;
+
+private:
+    double decide(double currentTemp) const;
+    forge::ProviderRef _provider;
 };
+
+} // namespace POLA::Simulation

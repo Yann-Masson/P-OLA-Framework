@@ -1,25 +1,34 @@
+/**
+ * @file Clock.cpp
+ * @brief Implementation of the simulation clock service.
+ */
+
 #include "Clock.hpp"
+
+namespace POLA::Services {
 
 Clock::Clock()
 {
-    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+    const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     _lastTime = now;
     _startTime = now;
 }
 
 void Clock::simulate()
 {
-    auto now = std::chrono::steady_clock::now();
+    const auto now = std::chrono::steady_clock::now();
     _elapsedTime = std::chrono::duration<double, std::milli>(now - _lastTime).count();
     _lastTime = now;
 }
 
-double Clock::elapsedTimeSinceStart() const
+double Clock::getElapsedTimeSinceStart() const
 {
     return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - _startTime).count();
 }
 
 double Clock::getElapsedTime() const
 {
-	return _elapsedTime;
+    return _elapsedTime;
 }
+
+} // namespace POLA::Services

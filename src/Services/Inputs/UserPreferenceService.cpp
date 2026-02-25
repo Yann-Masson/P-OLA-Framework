@@ -1,9 +1,18 @@
-#include "../../inputService/UserPreferenceService.hpp"
+/**
+ * @file UserPreferenceService.cpp
+ * @brief Implementation of the user preference data service.
+ */
 
-UserPreferenceData UserPreferenceService::getInput()
+#include "UserPreferenceService.hpp"
+
+namespace POLA::Services::Inputs {
+
+Common::UserPreferenceData UserPreferenceService::getInput()
 {
-	return {
-		.minTemperature = 22.0,
-		.maxTemperature = 28.0
-	};
+    return {
+        .minTemperature = 22.0,
+        .maxTemperature = 28.0
+    };
 }
+
+} // namespace POLA::Services::Inputs

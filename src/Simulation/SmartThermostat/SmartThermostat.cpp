@@ -1,11 +1,27 @@
-#include "SmartThermostat.hpp"
+/**
+ * @file SmartThermostat.cpp
+ * @brief Implementation of the smart thermostat controller.
+ */
 
-SmartThermostat::SmartThermostat(dic::ServiceProviderRef provider):
+#include "Interfaces/IAIModel.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Interfaces/IInputService.hpp"
+
+#include "SmartThermostat.hpp"
+#include "Common/DataTypes.hpp"
+#include "Simulation/TemperatureFactor/Heater.hpp"
+
+using namespace POLA::Common;
+using namespace POLA::Interfaces;
+
+namespace POLA::Simulation {
+
+SmartThermostat::SmartThermostat(const forge::ProviderRef& provider):
     _provider(provider)
 {
 }
 
-double SmartThermostat::decide(double currentTemp)
+double SmartThermostat::decide(const double currentTemp) const
 {
     auto clock = _provider.get<IClock>()->getElapsedTime();
     if (clock < DECIDE_DELAY) {
@@ -13,11 +29,12 @@ double SmartThermostat::decide(double currentTemp)
     }
 
     // Aggregation of data from input services
-    EnergyPriceData energyPrice = _provider.get<IInputService<EnergyPriceData>>()->getInput();
-    WeatherData weather = _provider.get<IInputService<WeatherData>>()->getInput();
-    UserPreferenceData userPref = _provider.get<IInputService<UserPreferenceData>>()->getInput();
-    GPSData gps = _provider.get<IInputService<GPSData>>()->getInput();
-    State state{
+    const auto energyPrice = _provider.get<IInputService<EnergyPriceData>>()->getInput();
+    const auto weather = _provider.get<IInputService<WeatherData>>()->getInput();
+    const auto userPref = _provider.get<IInputService<UserPreferenceData>>()->getInput();
+    const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
+
+    AIState state{
         currentTemp,
         weather.outTemperature,
         energyPrice.pricePerKWh,
@@ -25,16 +42,19 @@ double SmartThermostat::decide(double currentTemp)
         gps.velocityKmMin,
         (userPref.minTemperature + userPref.maxTemperature) / 2.0
     };
-    auto aiModel = _provider.get<IAIModel>();
+
+    const auto aiModel = _provider.get<IAIModel>();
     return aiModel->predict(state);
 }
 
-void SmartThermostat::simulate(double currentTemp)
+void SmartThermostat::simulate(const double currentTemp)
 {
     double wantedTemp = decide(currentTemp);
     if (wantedTemp < 0) {
         return;
     }
-    auto heater = _provider.get<Heater>();
+    auto heater = _provider.get<TemperatureFactor::Heater>();
     heater->setWantedTemperature(wantedTemp);
 }
+
+} // namespace POLA::Simulation

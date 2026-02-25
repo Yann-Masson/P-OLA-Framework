@@ -1,9 +1,19 @@
-#include "../../inputService/WeatherService.hpp"
+/**
+ * @file WeatherService.cpp
+ * @brief Implementation of the weather data service.
+ */
 
-WeatherData WeatherService::getInput()
+#include "WeatherService.hpp"
+
+namespace POLA::Services::Inputs {
+
+Common::WeatherData WeatherService::getInput()
 {
-	return {
-		.outTemperature = 20.0,
-		.enlightment = 1000.0
-	};
+    return {
+        .outTemperature = 20.0,
+        .sunlightIntensity = 1000.0
+    };
 }
+
+} // namespace POLA::Services::Inputs
+

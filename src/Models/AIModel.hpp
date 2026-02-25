@@ -1,23 +1,30 @@
-//
-// Created by Yann on 16/02/2026.
-//
+/**
+ * @file AIModel.hpp
+ * @brief TorchScript-based AI model for predicting optimal thermostat behavior.
+ */
 
 #pragma once
-#include "../Interfaces/IAIModel.hpp"
+
 #include <string>
 #include <torch/script.h>
 
-class AIModel : public IAIModel
+#include "Interfaces/IAIModel.hpp"
+
+namespace POLA::Models {
+
+class AIModel : public Interfaces::IAIModel
 {
 public:
     explicit AIModel(std::string modelPath = "models/ai_model.pt");
-    double predict(const State& state) override;
+    double predict(const Common::AIState& state) override;
 
 private:
     void ensureLoaded();
 
-    torch::jit::script::Module _module;
-    std::string _modelPath;
     bool _loaded = false;
+    std::string _modelPath;
+    torch::jit::script::Module _module;
     torch::Device _device = torch::kCPU;
 };
+
+} // namespace POLA::Models

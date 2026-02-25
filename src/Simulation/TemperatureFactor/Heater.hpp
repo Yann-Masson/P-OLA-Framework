@@ -1,12 +1,13 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** Heater
-*/
+/**
+ * @file Heater.hpp
+ * @brief Heater temperature factor that increases room temperature based on a target.
+ */
 
 #pragma once
+
 #include "ATemperatureFactor.hpp"
+
+namespace POLA::Simulation::TemperatureFactor {
 
 class Heater : public ATemperatureFactor
 {
@@ -19,3 +20,5 @@ public:
 private:
     double _wantedTemperature;
 };
+
+} // namespace POLA::Simulation::TemperatureFactor

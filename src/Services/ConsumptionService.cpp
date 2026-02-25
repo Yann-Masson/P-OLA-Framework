@@ -1,31 +1,40 @@
+/**
+ * @file ConsumptionService.cpp
+ * @brief Implementation of the energy consumption tracking service.
+ */
+
 #include "ConsumptionService.hpp"
 
-#include "../Interfaces/IInputService.hpp"
-#include "../Common/DataTypes.hpp"
+#include "Interfaces/IInputService.hpp"
+#include "Common/DataTypes.hpp"
 
-ConsumptionService::ConsumptionService(forge::ProviderRef provider) : _provider(provider)
+namespace POLA::Services {
+
+ConsumptionService::ConsumptionService(const forge::ProviderRef& provider) : _provider(provider)
 {
 }
 
-void ConsumptionService::recordEnergy(double kWh)
+void ConsumptionService::recordEnergy(const double kWh)
 {
-	double pricePerKWh = _provider.get<IInputService<EnergyPriceData>>()->getInput().pricePerKWh;
-	_totalEnergyKWh += kWh;
-	_totalCost += kWh * pricePerKWh;
+    const double pricePerKWh = _provider.get<Interfaces::IInputService<Common::EnergyPriceData>>()->getInput().pricePerKWh;
+    _totalEnergyKWh += kWh;
+    _totalCost += kWh * pricePerKWh;
 }
 
 double ConsumptionService::getTotalEnergyKWh() const
 {
-	return _totalEnergyKWh;
+    return _totalEnergyKWh;
 }
 
 double ConsumptionService::getTotalCost() const
 {
-	return _totalCost;
+    return _totalCost;
 }
 
 void ConsumptionService::reset()
 {
-	_totalEnergyKWh = 0.0;
-	_totalCost = 0.0;
+    _totalEnergyKWh = 0.0;
+    _totalCost = 0.0;
 }
+
+} // namespace POLA::Services

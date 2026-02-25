@@ -1,21 +1,20 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** IConsumptionService
-*/
+/**
+ * @file IConsumptionService.hpp
+ * @brief Interface for tracking energy consumption and associated costs.
+ */
 
 #pragma once
 
+namespace POLA::Interfaces {
+
 class IConsumptionService {
-    public:
-        virtual ~IConsumptionService() = default;
+public:
+    virtual ~IConsumptionService() = default;
 
-        virtual void recordEnergy(double kWh) = 0;
-        virtual double getTotalEnergyKWh() const = 0;
-        virtual double getTotalCost() const = 0;
-        virtual void reset() = 0;
-
-    protected:
-    private:
+    virtual void recordEnergy(double kWh) = 0;
+    [[nodiscard]] virtual double getTotalEnergyKWh() const = 0;
+    [[nodiscard]] virtual double getTotalCost() const = 0;
+    virtual void reset() = 0;
 };
+
+} // namespace POLA::Interfaces

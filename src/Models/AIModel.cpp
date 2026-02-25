@@ -1,12 +1,17 @@
-//
-// Created by Yann on 16/02/2026.
-//
+/**
+ * @file AIModel.cpp
+ * @brief Implementation of the TorchScript-based AI prediction model.
+ */
+
+#include <iostream>
+#include <filesystem>
+#include <torch/torch.h>
 
 #include "AIModel.hpp"
 
-#include <filesystem>
-#include <iostream>
-#include <torch/torch.h>
+namespace fs = std::filesystem;
+
+namespace POLA::Models {
 
 AIModel::AIModel(std::string modelPath)
     : _modelPath(std::move(modelPath))
@@ -18,8 +23,6 @@ void AIModel::ensureLoaded()
     if (_loaded) {
         return;
     }
-
-    namespace fs = std::filesystem;
 
     try {
         const fs::path modelPath(_modelPath);
@@ -53,7 +56,7 @@ void AIModel::ensureLoaded()
     }
 }
 
-double AIModel::predict(const State& state)
+double AIModel::predict(const Common::AIState& state)
 {
     ensureLoaded();
 
@@ -70,3 +73,5 @@ double AIModel::predict(const State& state)
     auto output = _module.forward({input}).toTensor();
     return output.squeeze().item<double>();
 }
+
+} // namespace POLA::Models

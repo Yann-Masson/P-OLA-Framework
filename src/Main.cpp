@@ -1,3 +1,8 @@
+/**
+ * @file Main.cpp
+ * @brief Entry point for the P-OLA smart thermostat simulator.
+ */
+
 #include <chrono>
 #include <iostream>
 #include <filesystem>
@@ -21,6 +26,14 @@
 #include "Simulation/TemperatureFactor/Wall.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Window.hpp"
+
+using namespace POLA::Common;
+using namespace POLA::Interfaces;
+using namespace POLA::Models;
+using namespace POLA::Services;
+using namespace POLA::Services::Inputs;
+using namespace POLA::Simulation;
+using namespace POLA::Simulation::TemperatureFactor;
 
 // Define a simple model struct for TorchScript
 struct TinyModelImpl : torch::nn::Module {
@@ -93,7 +106,7 @@ int main() {
     const auto modelPath = ensureTinyModel("models/ai_model.pt");
     AIModel model(modelPath);
 
-    constexpr State state {
+    constexpr AIState state {
         21.0,
         10.0,
         0.25,
@@ -123,7 +136,7 @@ int main() {
     std::cout << "Service Provider initialized with services:" << std::endl;
     std::cout << "Temperature factors registered:" << std::endl;
     for (const auto& factor : provider.getAll<ITemperatureFactor>()) {
-        std::cout << " - " << typeid(*factor).name() << std::endl;
+        std::cout << " - " << typeid(factor.get()).name() << std::endl;
     }
 
     std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;

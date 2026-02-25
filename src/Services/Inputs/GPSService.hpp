@@ -1,20 +1,21 @@
-/*
-** EPITECH PROJECT, 2026
-** P-OLA-Framework
-** File description:
-** GPSService
-*/
+/**
+ * @file GPSService.hpp
+ * @brief Service providing GPS location and velocity data.
+ */
 
 #pragma once
-#include "AInputService.hpp"
-#include "../../Common/DataTypes.hpp"
 
-class GPSService : public AInputService<GPSData>
+#include "AInputService.hpp"
+#include "Common/DataTypes.hpp"
+
+namespace POLA::Services::Inputs {
+
+class GPSService : public AInputService<Common::GPSData>
 {
 public:
-    using AInputService<GPSData>::AInputService;
-    GPSData getInput() override;
-
-protected:
-private:
+    using AInputService<Common::GPSData>::AInputService;
+    Common::GPSData getInput() override;
 };
+
+} // namespace POLA::Services::Inputs
+

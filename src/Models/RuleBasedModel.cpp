@@ -1,10 +1,13 @@
-//
-// Created by Yann on 16/02/2026.
-//
+/**
+ * @file RuleBasedModel.cpp
+ * @brief Implementation of the rule-based prediction model.
+ */
 
 #include "RuleBasedModel.hpp"
 
-double RuleBasedModel::predict(const State& state)
+namespace POLA::Models {
+
+double RuleBasedModel::predict(const Common::AIState& state)
 {
     // Simple rule-based logic for demonstration
     if (state.electricityPrice > 0.20) {
@@ -15,3 +18,5 @@ double RuleBasedModel::predict(const State& state)
         return 0.5; // Moderate energy consumption
     }
 }
+
+} // namespace POLA::Models
