@@ -1,7 +1,11 @@
 #include "Room.hpp"
 
-Room::Room(dicnew::ServiceProviderRef provider, double startingTemperature) : _temperature(startingTemperature),
-																			  _provider(provider)
+#include <iostream>
+
+#include "../temperatureFactor/ITemperatureFactor.hpp"
+
+Room::Room(const forge::ProviderRef& provider, const double startingTemperature) : _temperature(startingTemperature),
+                                                                      _provider(provider)
 {
 }
 

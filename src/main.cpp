@@ -1,25 +1,25 @@
 #include <iostream>
 #include <torch/torch.h>
 
-#include <dicnew/ServiceProvider.hpp>
-#include <dicnew/ServiceProviderBuilder.hpp>
+#include <torch/script.h>
+#include <forge/provider_builder.hpp>
+
+#include "room/Room.hpp"
 #include "clock/IClock.hpp"
 #include "clock/SimulationClock.hpp"
-#include <torch/script.h>
-#include "inputService/EnergyPriceService.hpp"
-#include "inputService/WeatherService.hpp"
-#include "inputService/GPSService.hpp"
-#include "inputService/UserPreferenceService.hpp"
-#include "consumptionService/ConsumptionService.hpp"
-#include "temperatureFactor/ITemperatureFactor.hpp"
-#include "temperatureFactor/Heater.hpp"
 #include "temperatureFactor/Wall.hpp"
+#include "inputService/GPSService.hpp"
+#include "temperatureFactor/Heater.hpp"
 #include "temperatureFactor/Window.hpp"
-#include "room/Room.hpp"
+#include "inputService/WeatherService.hpp"
+#include "inputService/EnergyPriceService.hpp"
+#include "inputService/UserPreferenceService.hpp"
+#include "temperatureFactor/ITemperatureFactor.hpp"
+#include "consumptionService/ConsumptionService.hpp"
 
 int main()
 {
-    const auto provider = dicnew::ServiceProviderBuilder()
+    const auto provider = forge::ProviderBuilder()
                         .addService<IClock, SimulationClock>()
                         .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
                         .addService<IInputService<WeatherData>, WeatherService>()

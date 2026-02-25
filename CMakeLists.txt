@@ -8,21 +8,23 @@ endif()
 
 project(P-OLA_Simulator)
 
-add_subdirectory(CppDic)
-add_subdirectory(DicNew)
+# --- LIBS CONFIGURATION ---
+set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
+
+# --- FORGE CONFIGURATION ---
+set(LIB_FORGE_DIR "${LIBS_DIR}/forge")
+add_subdirectory(${LIB_FORGE_DIR})
+# ------------------------------
 
 # --- LIBTORCH CONFIGURATION ---
-set(LIBTORCH_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libtorch")
-list(APPEND CMAKE_PREFIX_PATH "${LIBTORCH_DIR}")
+set(LIB_TORCH_DIR "${LIBS_DIR}/libtorch")
+list(APPEND CMAKE_PREFIX_PATH "${LIB_TORCH_DIR}")
 find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 # ------------------------------
 
 add_executable(${PROJECT_NAME}
         src/main.cpp
-        src/ThermalModel.cpp
-        src/OLA_Agent.cpp
-        src/OLA_Agent.hpp
         src/clock/IClock.hpp
         src/clock/SimulationClock.cpp
         src/clock/SimulationClock.hpp
@@ -57,15 +59,8 @@ target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
 
 target_link_libraries(${PROJECT_NAME}
     PRIVATE
-        cppdic
-        dicnew
-        "${TORCH_LIBRARIES}"
-)
-
-target_include_directories(${PROJECT_NAME}
-    PRIVATE
-        CppDic/lib/include
-        DicNew/lib/include
+        forge
+        ${TORCH_LIBRARIES}
 )
 
 # Required for Windows to find the LibTorch DLLs at runtime

@@ -1,5 +1,5 @@
 #include "ATemperatureFactor.hpp"
 
-ATemperatureFactor::ATemperatureFactor(dicnew::ServiceProviderRef provider) : _provider(provider)
+ATemperatureFactor::ATemperatureFactor(forge::ProviderRef provider) : _provider(provider)
 {
 }

@@ -6,13 +6,14 @@
 */
 
 #pragma once
+
 #include "ITemperatureFactor.hpp"
-#include <dicnew/ServiceProvider.hpp>
+#include <forge/provider.hpp>
 
 class ATemperatureFactor : public ITemperatureFactor {
     public:
-        explicit ATemperatureFactor(dicnew::ServiceProviderRef provider);
+        explicit ATemperatureFactor(forge::ProviderRef provider);
 
     protected:
-        dicnew::ServiceProviderRef _provider;
+        forge::ProviderRef _provider;
 };

@@ -6,14 +6,13 @@
 */
 
 #pragma once
-#include <dicnew/ServiceProvider.hpp>
-#include "../temperatureFactor/ITemperatureFactor.hpp"
-#include <iostream>
+
+#include <forge/provider.hpp>
 
 class Room
 {
 public:
-    Room(dicnew::ServiceProviderRef provider, double startingTemperature = 20.0);
+    Room(const forge::ProviderRef& provider, double startingTemperature = 20.0);
     ~Room();
 
     double getTemperature() const;
@@ -21,5 +20,5 @@ public:
 
 private:
     double _temperature;
-    dicnew::ServiceProviderRef _provider;
+    forge::ProviderRef _provider;
 };

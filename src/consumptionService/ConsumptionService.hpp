@@ -7,14 +7,14 @@
 
 #pragma once
 #include "IConsumptionService.hpp"
-#include <dicnew/ServiceProvider.hpp>
+#include <forge/provider.hpp>
 #include "../inputService/IInputService.hpp"
 #include "../inputService/DataTypes.hpp"
 
 class ConsumptionService : public IConsumptionService
 {
 public:
-    ConsumptionService(dicnew::ServiceProviderRef provider);
+    ConsumptionService(forge::ProviderRef provider);
 
     void recordEnergy(double kWh) override;
     double getTotalEnergyKWh() const override;
@@ -22,7 +22,7 @@ public:
     void reset() override;
 
 private:
-    dicnew::ServiceProviderRef _provider;
+    forge::ProviderRef _provider;
     double _totalEnergyKWh = 0.0;
     double _totalCost = 0.0;
 };

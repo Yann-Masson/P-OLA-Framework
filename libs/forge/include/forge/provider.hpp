@@ -7,14 +7,14 @@
 #include <string>
 #include <vector>
 
-namespace dicnew
+namespace forge
 {
 
     // Forward declaration
-    class ServiceProvider;
+    class Provider;
 
     // Internal implementation structure
-    struct ServiceProviderImpl
+    struct ProviderImpl
     {
         // Map of type_index to service instance
         std::unordered_map<std::type_index, std::shared_ptr<void>> services;
@@ -25,26 +25,26 @@ namespace dicnew
         template <typename T>
         void registerService(std::shared_ptr<T> instance)
         {
-            std::type_index typeIdx(typeid(T));
+            const std::type_index typeIdx(typeid(T));
             services[typeIdx] = std::static_pointer_cast<void>(instance);
         }
 
         template <typename T>
         void registerMultiService(std::shared_ptr<T> instance)
         {
-            std::type_index typeIdx(typeid(T));
+            const std::type_index typeIdx(typeid(T));
             multiServices[typeIdx].push_back(std::static_pointer_cast<void>(instance));
         }
     };
 
     /**
-     * ServiceProviderRef - A lightweight reference to the ServiceProvider
+     * ProviderRef - A lightweight reference to the Provider
      * Can be passed to service constructors for dependency injection
      */
-    class ServiceProviderRef
+    class ProviderRef
     {
     public:
-        ServiceProviderRef() = default;
+        ProviderRef() = default;
 
         /**
          * Get a service by its interface/base type
@@ -80,21 +80,21 @@ namespace dicnew
         std::vector<std::shared_ptr<T>> getAll() const;
 
     private:
-        explicit ServiceProviderRef(std::shared_ptr<ServiceProviderImpl> impl) : pImpl(impl) {}
+        explicit ProviderRef(std::shared_ptr<ProviderImpl> impl) : pImpl(impl) {}
 
-        std::shared_ptr<ServiceProviderImpl> pImpl;
+        std::shared_ptr<ProviderImpl> pImpl;
 
-        friend class ServiceProvider;
+        friend class Provider;
     };
 
     /**
-     * ServiceProvider - The main dependency injection container
+     * Provider - The main dependency injection container
      * Stores and manages service instances
      */
-    class ServiceProvider
+    class Provider
     {
     public:
-        ServiceProvider() : pImpl(std::make_shared<ServiceProviderImpl>()) {}
+        Provider() : pImpl(std::make_shared<ProviderImpl>()) {}
 
         /**
          * Get a service by its interface/base type
@@ -174,29 +174,29 @@ namespace dicnew
         }
 
         /**
-         * Create a lightweight reference to this provider
-         * @return ServiceProviderRef that can be passed to constructors
+         * Create a lightweight reference to this Provider
+         * @return ProviderRef that can be passed to constructors
          */
-        ServiceProviderRef ref() const
+        ProviderRef ref() const
         {
-            return ServiceProviderRef(pImpl);
+            return ProviderRef(pImpl);
         }
 
     private:
-        std::shared_ptr<ServiceProviderImpl> pImpl;
+        std::shared_ptr<ProviderImpl> pImpl;
 
-        friend class ServiceProviderBuilder;
-        friend class ServiceProviderRef;
+        friend class ProviderBuilder;
+        friend class ProviderRef;
     };
 
-    // ServiceProviderRef template method implementations (after ServiceProvider is defined)
+    // ProviderRef template method implementations (after Provider is defined)
 
     template <typename T>
-    std::shared_ptr<T> ServiceProviderRef::get() const
+    std::shared_ptr<T> ProviderRef::get() const
     {
         if (!pImpl)
         {
-            throw std::runtime_error("ServiceProviderRef is not initialized");
+            throw std::runtime_error("ProviderRef is not initialized");
         }
 
         std::type_index typeIdx(typeid(T));
@@ -212,7 +212,7 @@ namespace dicnew
     }
 
     template <typename T>
-    std::shared_ptr<T> ServiceProviderRef::tryGet() const
+    std::shared_ptr<T> ProviderRef::tryGet() const
     {
         if (!pImpl)
         {
@@ -231,7 +231,7 @@ namespace dicnew
     }
 
     template <typename T>
-    bool ServiceProviderRef::has() const
+    bool ProviderRef::has() const
     {
         if (!pImpl)
         {
@@ -243,15 +243,15 @@ namespace dicnew
     }
 
     template <typename T>
-    std::vector<std::shared_ptr<T>> ServiceProviderRef::getAll() const
+    std::vector<std::shared_ptr<T>> ProviderRef::getAll() const
     {
         if (!pImpl)
         {
             return {};
         }
 
-        std::type_index typeIdx(typeid(T));
-        auto it = pImpl->multiServices.find(typeIdx);
+        const std::type_index typeIdx(typeid(T));
+        const auto it = pImpl->multiServices.find(typeIdx);
 
         if (it == pImpl->multiServices.end())
         {
@@ -268,4 +268,4 @@ namespace dicnew
     }
 
 
-} // namespace dicnew
+} // namespace forge

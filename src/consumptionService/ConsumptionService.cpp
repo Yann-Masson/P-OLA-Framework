@@ -1,6 +1,6 @@
 #include "ConsumptionService.hpp"
 
-ConsumptionService::ConsumptionService(dicnew::ServiceProviderRef provider) : _provider(provider)
+ConsumptionService::ConsumptionService(forge::ProviderRef provider) : _provider(provider)
 {
 }
 

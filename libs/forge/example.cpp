@@ -1,10 +1,7 @@
-// #include <dicnew/ServiceProvider.hpp>
-// #include <dicnew/ServiceProviderBuilder.hpp>
-#include <iostream>
 #include <memory>
-
-#include "lib/include/dicnew/ServiceProvider.hpp"
-#include "lib/include/dicnew/ServiceProviderBuilder.hpp"
+#include <iostream>
+#include <forge/provider.hpp>
+#include <forge/provider_builder.hpp>
 
 // Example interfaces and implementations
 
@@ -36,11 +33,11 @@ public:
 class PostgresDatabase : public IDatabase
 {
 private:
-    dicnew::ServiceProviderRef _provider;
+    forge::ProviderRef _provider;
 
 public:
     // Constructor with dependency injection
-    PostgresDatabase(dicnew::ServiceProviderRef provider) : _provider(provider)
+    PostgresDatabase(forge::ProviderRef provider) : _provider(provider)
     {
         auto logger = _provider.get<ILogger>();
         logger->log("PostgresDatabase created");
@@ -56,11 +53,11 @@ public:
 class UserService
 {
 private:
-    dicnew::ServiceProviderRef _provider;
+    forge::ProviderRef _provider;
 
 public:
     // Constructor with dependency injection
-    UserService(dicnew::ServiceProviderRef provider) : _provider(provider)
+    UserService(forge::ProviderRef provider) : _provider(provider)
     {
         auto logger = _provider.get<ILogger>();
         logger->log("UserService created");
@@ -76,17 +73,60 @@ public:
     }
 };
 
+// Example for multi-service feature
+class IPlugin
+{
+public:
+    virtual ~IPlugin() = default;
+    virtual void execute() = 0;
+    virtual std::string getName() const = 0;
+};
+
+class EmailPlugin : public IPlugin
+{
+public:
+    void execute() override
+    {
+        std::cout << "  [EmailPlugin] Sending email notification..." << std::endl;
+    }
+    std::string getName() const override { return "EmailPlugin"; }
+};
+
+class SlackPlugin : public IPlugin
+{
+public:
+    void execute() override
+    {
+        std::cout << "  [SlackPlugin] Posting to Slack..." << std::endl;
+    }
+    std::string getName() const override { return "SlackPlugin"; }
+};
+
+class LogPlugin : public IPlugin
+{
+public:
+    void execute() override
+    {
+        std::cout << "  [LogPlugin] Writing to log file..." << std::endl;
+    }
+    std::string getName() const override { return "LogPlugin"; }
+};
+
 int main()
 {
-    std::cout << "=== DicNew Example ===" << std::endl;
+    std::cout << "=== Forge Example ===" << std::endl;
     std::cout << std::endl;
 
     // Build the service provider
     std::cout << "Building service provider..." << std::endl;
-    auto provider = dicnew::ServiceProviderBuilder()
+    auto provider = forge::ProviderBuilder()
                         .addService<ILogger, ConsoleLogger>()
                         .addService<IDatabase, PostgresDatabase>()
                         .addService<UserService>()
+                        // Register multiple plugins using addMultiService
+                        .addMultiService<IPlugin, EmailPlugin>()
+                        .addMultiService<IPlugin, SlackPlugin>()
+                        .addMultiService<IPlugin, LogPlugin>()
                         .build();
 
     std::cout << std::endl;
@@ -97,6 +137,17 @@ int main()
     std::cout << "Using services..." << std::endl;
     auto userService = provider.get<UserService>();
     userService->createUser("john_doe");
+
+    std::cout << std::endl;
+    std::cout << "=== Multi-Service Example ===" << std::endl;
+    std::cout << "Retrieving all plugins..." << std::endl;
+    auto plugins = provider.getAll<IPlugin>();
+    std::cout << "Found " << plugins.size() << " plugins:" << std::endl;
+    for (const auto& plugin : plugins)
+    {
+        std::cout << "Running " << plugin->getName() << ":" << std::endl;
+        plugin->execute();
+    }
 
     std::cout << std::endl;
     std::cout << "=== Example Complete ===" << std::endl;

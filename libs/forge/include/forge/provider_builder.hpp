@@ -1,23 +1,23 @@
 #pragma once
 
-#include "ServiceProvider.hpp"
+#include "provider.hpp"
 #include <memory>
 #include <type_traits>
-#include <concepts>
+#include <functional>
 
-namespace dicnew
+namespace forge
 {
 
     /**
-     * ServiceProviderBuilder - Builder pattern for constructing a ServiceProvider
+     * ProviderBuilder - Builder pattern for constructing a Provider
      * Allows fluent registration of services with dependency injection support
      */
-    class ServiceProviderBuilder
+    class ProviderBuilder
     {
     public:
-        ServiceProviderBuilder()
+        ProviderBuilder()
         {
-            provider.pImpl = std::make_shared<ServiceProviderImpl>();
+            provider.pImpl = std::make_shared<ProviderImpl>();
         }
 
         /**
@@ -26,13 +26,13 @@ namespace dicnew
          *
          * Service constructor can be:
          * - Default constructor: Service()
-         * - Provider constructor: Service(ServiceProviderRef)
+         * - Provider constructor: Service(ProviderRef)
          *
          * @tparam TImpl The concrete implementation type
          * @return Reference to this builder for chaining
          */
         template <typename TImpl>
-        ServiceProviderBuilder &addService()
+        ProviderBuilder &addService()
         {
             static_assert(!std::is_abstract_v<TImpl>,
                           "Cannot instantiate abstract class. Use addService<TInterface, TImpl>() instead.");
@@ -52,14 +52,14 @@ namespace dicnew
          *
          * Implementation constructor can be:
          * - Default constructor: Impl()
-         * - Provider constructor: Impl(ServiceProviderRef)
+         * - Provider constructor: Impl(ProviderRef)
          *
          * @tparam TInterface The interface/base type
          * @tparam TImpl The concrete implementation type
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ServiceProviderBuilder &addService()
+        ProviderBuilder &addService()
         {
             static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
@@ -87,7 +87,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename T>
-        ServiceProviderBuilder &addService(std::shared_ptr<T> instance)
+        ProviderBuilder &addService(std::shared_ptr<T> instance)
         {
             if (!instance)
             {
@@ -107,7 +107,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ServiceProviderBuilder &addService(std::shared_ptr<TImpl> instance)
+        ProviderBuilder &addService(std::shared_ptr<TImpl> instance)
         {
             static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
@@ -132,7 +132,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename TImpl>
-        ServiceProviderBuilder &addMultiService()
+        ProviderBuilder &addMultiService()
         {
             static_assert(!std::is_abstract_v<TImpl>,
                           "Cannot instantiate abstract class. Use addMultiService<TInterface, TImpl>() instead.");
@@ -155,7 +155,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ServiceProviderBuilder &addMultiService()
+        ProviderBuilder &addMultiService()
         {
             static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
@@ -180,7 +180,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename T>
-        ServiceProviderBuilder &addMultiService(std::shared_ptr<T> instance)
+        ProviderBuilder &addMultiService(std::shared_ptr<T> instance)
         {
             if (!instance)
             {
@@ -201,7 +201,7 @@ namespace dicnew
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ServiceProviderBuilder &addMultiService(std::shared_ptr<TImpl> instance)
+        ProviderBuilder &addMultiService(std::shared_ptr<TImpl> instance)
         {
             static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
@@ -217,12 +217,12 @@ namespace dicnew
         }
 
         /**
-         * Build and finalize the ServiceProvider
+         * Build and finalize the Provider
          * Constructs all deferred services with dependency injection
          *
-         * @return The constructed ServiceProvider instance
+         * @return The constructed Provider instance
          */
-        ServiceProvider build()
+        Provider build()
         {
             // Execute all deferred constructors
             // Services can now depend on previously registered services
@@ -240,7 +240,7 @@ namespace dicnew
         /**
          * Create an instance of a service with automatic constructor detection
          * Tries constructors in this order:
-         * 1. Constructor taking ServiceProviderRef
+         * 1. Constructor taking ProviderRef
          * 2. Default constructor
          */
         template <typename T>
@@ -248,8 +248,8 @@ namespace dicnew
         {
             auto providerRef = provider.ref();
 
-            // Check if constructible with ServiceProviderRef
-            if constexpr (std::is_constructible_v<T, ServiceProviderRef>)
+            // Check if constructible with ProviderRef
+            if constexpr (std::is_constructible_v<T, ProviderRef>)
             {
                 return std::make_shared<T>(providerRef);
             }
@@ -260,17 +260,17 @@ namespace dicnew
             }
             else
             {
-                static_assert(std::is_constructible_v<T, ServiceProviderRef> ||
+                static_assert(std::is_constructible_v<T, ProviderRef> ||
                                   std::is_default_constructible_v<T>,
                               "Service must be either default constructible or "
-                              "constructible with ServiceProviderRef");
+                              "constructible with ProviderRef");
                 // This won't compile, but provides a better error message
                 return nullptr;
             }
         }
 
-        ServiceProvider provider;
+        Provider provider;
         std::vector<std::function<void()>> deferredConstructors;
     };
 
-} // namespace dicnew
+} // namespace forge
