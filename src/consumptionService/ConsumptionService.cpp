@@ -7,8 +7,7 @@ ConsumptionService::ConsumptionService(dic::ServiceProviderRef provider):
 
 void ConsumptionService::recordEnergy(double kWh)
 {
-	double pricePerKWh = 0.15; // TODO: retrieve this from the PriceService in the provider
-	// double pricePerKwh = _provider.get<PriceService>().getCurrentPricePerKWh();
+	double pricePerKWh = _provider.get<IInputService<EnergyPriceData>>()->getInput().pricePerKWh;
 	_totalEnergyKWh += kWh;
 	_totalCost += kWh * pricePerKWh;
 }

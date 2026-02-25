@@ -3,8 +3,7 @@
 double Heater::simulate(double insideTemperature)
 {
     // TODO: calculate the real value from the wanted temperature
-    // ? how to get the wanted temperature ?
-    // TODO: call the ConsumptionService to add the consumption of the heater (from the provider)
+    _provider.get<IConsumptionService>()->recordEnergy(0.1); //TODO: find the real value to record
     return 5.0;
 }
 
