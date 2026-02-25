@@ -6,10 +6,10 @@
 */
 
 #pragma once
-#include "IConsumptionService.hpp"
+
 #include <forge/provider.hpp>
-#include "../inputService/IInputService.hpp"
-#include "../inputService/DataTypes.hpp"
+
+#include "IConsumptionService.hpp"
 
 class ConsumptionService : public IConsumptionService
 {

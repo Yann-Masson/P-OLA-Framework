@@ -51,6 +51,11 @@ add_executable(${PROJECT_NAME}
         src/inputService/WeatherService.cpp
         src/inputService/WeatherService.hpp
         src/inputService/DataTypes.hpp
+        src/model/IAIModel.hpp
+        src/model/RuleBasedModel.cpp
+        src/model/RuleBasedModel.hpp
+        src/model/AIModel.cpp
+        src/model/AIModel.hpp
         src/room/Room.cpp
         src/room/Room.hpp
 )

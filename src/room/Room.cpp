@@ -20,13 +20,13 @@ double Room::getTemperature() const
 
 void Room::simulate()
 {
-	auto factors = _provider.getAll<ITemperatureFactor>();
+	const auto factors = _provider.getAll<ITemperatureFactor>();
 	if (!factors.empty())
 	{
 		std::cout << "Simulating room with " << factors.size() << " temperature factors." << std::endl;
 		for (auto &service : factors)
 		{
-			_temperature += service->simulate();
+			_temperature += service->simulate(_temperature);
 		}
 	}
 	else

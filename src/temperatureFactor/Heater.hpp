@@ -7,15 +7,15 @@
 
 #pragma once
 #include "ATemperatureFactor.hpp"
-#include "../consumptionService/IConsumptionService.hpp"
 
-class Heater: public ATemperatureFactor {
-    public:
-        using ATemperatureFactor::ATemperatureFactor;
-        double simulate() override;
+class Heater : public ATemperatureFactor
+{
+public:
+    using ATemperatureFactor::ATemperatureFactor;
+    double simulate(double insideTemperature) override;
 
-        void setWantedTemperature(double wantedTemperature);
+    void setWantedTemperature(double wantedTemperature);
 
-    private:
-        double _wantedTemperature;
+private:
+    double _wantedTemperature;
 };
