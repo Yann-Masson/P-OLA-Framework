@@ -1,0 +1,30 @@
+/**
+ * @file DataTypes.hpp
+ * @brief Common data structures used across services for sensor and user data.
+ */
+
+#pragma once
+
+namespace POLA::Common {
+
+struct EnergyPriceData {
+    double pricePerKWh;
+};
+
+struct WeatherData {
+    double outTemperature;
+    double sunlightIntensity; // in W/m²
+};
+
+struct UserPreferenceData {
+    double minTemperature;
+    double maxTemperature;
+};
+
+struct GPSData {
+    double distanceKm;
+    double velocityKmMin;
+};
+
+} // namespace POLA::Common
+

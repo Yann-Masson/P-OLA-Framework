@@ -8,6 +8,9 @@ endif()
 
 project(P-OLA_Simulator)
 
+# Place executables at the root of the build directory.
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+
 # --- LIBS CONFIGURATION ---
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 
@@ -23,52 +26,4 @@ find_package(Torch REQUIRED)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 # ------------------------------
 
-add_executable(${PROJECT_NAME}
-        src/main.cpp
-        src/clock/IClock.hpp
-        src/clock/SimulationClock.cpp
-        src/clock/SimulationClock.hpp
-        src/consumptionService/IConsumptionService.hpp
-        src/consumptionService/ConsumptionService.cpp
-        src/consumptionService/ConsumptionService.hpp
-        src/temperatureFactor/ITemperatureFactor.hpp
-        src/temperatureFactor/ATemperatureFactor.hpp
-        src/temperatureFactor/ATemperatureFactor.cpp
-        src/temperatureFactor/Heater.hpp
-        src/temperatureFactor/Heater.cpp
-        src/temperatureFactor/Wall.hpp
-        src/temperatureFactor/Wall.cpp
-        src/temperatureFactor/Window.hpp
-        src/temperatureFactor/Window.cpp
-        src/inputService/AInputService.hpp
-        src/inputService/EnergyPriceService.cpp
-        src/inputService/EnergyPriceService.hpp
-        src/inputService/GPSService.cpp
-        src/inputService/GPSService.hpp
-        src/inputService/IInputService.hpp
-        src/inputService/UserPreferenceService.cpp
-        src/inputService/UserPreferenceService.hpp
-        src/inputService/WeatherService.cpp
-        src/inputService/WeatherService.hpp
-        src/inputService/DataTypes.hpp
-        src/model/IAIModel.hpp
-        src/model/RuleBasedModel.cpp
-        src/model/RuleBasedModel.hpp
-        src/model/AIModel.cpp
-        src/model/AIModel.hpp
-        src/room/Room.cpp
-        src/room/Room.hpp
-)
-
-target_compile_features(P-OLA_Simulator PRIVATE cxx_std_23)
-
-target_link_libraries(${PROJECT_NAME}
-    PRIVATE
-        forge
-        ${TORCH_LIBRARIES}
-)
-
-# Required for Windows to find the LibTorch DLLs at runtime
-if(MSVC)
-    configure_windows_torch_runtime(${PROJECT_NAME})
-endif()
+add_subdirectory(src)
