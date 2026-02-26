@@ -10,6 +10,7 @@ echo ""
 URL="https://download.pytorch.org/libtorch/cpu/libtorch-macos-arm64-2.10.0.zip"
 ZIP_FILE="libtorch-macos-arm64-2.10.0.zip"
 LIBTORCH_DIR="libs/libtorch"
+LIBTORCH_DESTINATION="libs"
 
 # Check if zip file already exists
 if [ ! -f "$ZIP_FILE" ]; then
@@ -40,7 +41,7 @@ fi
 
 # Extract the LibTorch
 echo -e "\033[32mExtracting LibTorch...\033[0m"
-unzip -q "$ZIP_FILE"
+unzip -q "$ZIP_FILE" -d "$LIBTORCH_DESTINATION"
 
 echo ""
 echo -e "\033[36mNext steps:\033[0m"
