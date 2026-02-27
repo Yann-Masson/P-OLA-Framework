@@ -20,3 +20,6 @@ target_link_libraries(pola_services
 
 target_compile_features(pola_services PUBLIC cxx_std_23)
 
+# Absolute path to project data directory for runtime loading.
+target_compile_definitions(pola_services PUBLIC DATA_DIR="${PROJECT_SOURCE_DIR}/data")
+

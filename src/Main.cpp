@@ -6,6 +6,7 @@
 #include <chrono>
 #include <iostream>
 #include <filesystem>
+#include <thread>
 
 #include <torch/torch.h>
 #include <torch/script.h>
@@ -37,13 +38,16 @@ using namespace POLA::Simulation;
 using namespace POLA::Simulation::TemperatureFactor;
 
 // Define a simple model struct for TorchScript
-struct TinyModelImpl : torch::nn::Module {
-    TinyModelImpl() {
+struct TinyModelImpl : torch::nn::Module
+{
+    TinyModelImpl()
+    {
         fc1 = register_module("fc1", torch::nn::Linear(6, 16));
         fc2 = register_module("fc2", torch::nn::Linear(16, 1));
     }
 
-    torch::Tensor forward(torch::Tensor x) {
+    torch::Tensor forward(torch::Tensor x)
+    {
         x = torch::relu(fc1->forward(x));
         x = fc2->forward(x);
         return x;
@@ -54,16 +58,18 @@ struct TinyModelImpl : torch::nn::Module {
 
 TORCH_MODULE(TinyModel);
 
-static std::string ensureTinyModel(const std::string& modelPath)
+static std::string ensureTinyModel(const std::string &modelPath)
 {
     namespace fs = std::filesystem;
 
     const fs::path path(modelPath);
-    if (path.has_parent_path()) {
+    if (path.has_parent_path())
+    {
         fs::create_directories(path.parent_path());
     }
 
-    if (fs::exists(path)) {
+    if (fs::exists(path))
+    {
         return modelPath;
     }
 
@@ -103,7 +109,26 @@ static std::string ensureTinyModel(const std::string& modelPath)
     return modelPath;
 }
 
-int main() {
+void weatherServiceTest(const forge::Provider &provider)
+{
+    std::cout << "\n--- Weather Service Test ---" << std::endl;
+    auto weatherService = provider.get<IInputService<WeatherData>>();
+    auto clock = provider.get<IClock>();
+
+    std::cout << "Testing weather service with simulated time progression:" << std::endl;
+    for (int i = 0; i < 5; ++i)
+    {
+        WeatherData weather = weatherService->getInput();
+        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] "
+                  << "Temperature: " << weather.outTemperature << "°C, "
+                  << "Sunlight: " << weather.sunlightIntensity << " W/m²" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        clock->simulate();
+    }
+}
+
+int main()
+{
     const auto modelPath = ensureTinyModel("models/ai_model.pt");
     AIModel model(modelPath);
 
@@ -118,38 +143,43 @@ int main() {
 
     std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
 
+    auto simulationClockService = std::make_shared<Clock>(86400); // 1 real second = 1 simulated day
+
     const auto provider = forge::ProviderBuilder()
-                        .addService<IClock, Clock>()
-                        .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
-                        .addService<IInputService<WeatherData>, WeatherService>()
-                        .addService<IInputService<GPSData>, GPSService>()
-                        .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
-                        .addService<IConsumptionService, ConsumptionService>()
-                        .addMultiService<ITemperatureFactor, Heater>()
-                        .addMultiService<ITemperatureFactor, Wall>()
-                        .addMultiService<ITemperatureFactor, Wall>()
-                        .addMultiService<ITemperatureFactor, Wall>()
-                        .addMultiService<ITemperatureFactor, Wall>()
-                        .addMultiService<ITemperatureFactor, Window>()
-                        .addService<IAIModel, AIModel>()
-                        .addService<ISmartThermostat, SmartThermostat>()
-                        .addService<Room>()
-                        .build();
+                              .addService<IClock>(simulationClockService)
+                              .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
+                              .addService<IInputService<WeatherData>, WeatherService>()
+                              .addService<IInputService<GPSData>, GPSService>()
+                              .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
+                              .addService<IConsumptionService, ConsumptionService>()
+                              .addMultiService<ITemperatureFactor, Heater>()
+                              .addMultiService<ITemperatureFactor, Wall>()
+                              .addMultiService<ITemperatureFactor, Wall>()
+                              .addMultiService<ITemperatureFactor, Wall>()
+                              .addMultiService<ITemperatureFactor, Wall>()
+                              .addMultiService<ITemperatureFactor, Window>()
+                              .addService<IAIModel, AIModel>()
+                              .addService<ISmartThermostat, SmartThermostat>()
+                              .addService<Room>()
+                              .build();
 
     std::cout << "Service Provider initialized with services:" << std::endl;
     std::cout << "Temperature factors registered:" << std::endl;
-    for (const auto& factor : provider.getAll<ITemperatureFactor>()) {
+    for (const auto &factor : provider.getAll<ITemperatureFactor>())
+    {
         std::cout << " - " << typeid(*factor).name() << std::endl;
     }
 
     std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;
     std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricePerKWh << " per kWh" << std::endl;
     std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().outTemperature << "°C" << std::endl;
-    std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm  << " km)" << std::endl;
+    std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm << " km)" << std::endl;
     std::cout << "User preference service initialized with preferred temperature: " << provider.get<IInputService<UserPreferenceData>>()->getInput().maxTemperature << "°C" << std::endl;
     std::cout << "Consumption service initialized with total energy: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh and total cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
 
     auto room = provider.get<Room>();
+
+    weatherServiceTest(provider); // Test the weather service with simulated time progression
 
     return 0;
 }

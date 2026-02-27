@@ -13,7 +13,7 @@ namespace POLA::Services {
 class Clock : public Interfaces::IClock
 {
 public:
-    Clock();
+    Clock(double timeMultiplier = 1.0);
     void simulate() override;
     [[nodiscard]] double getElapsedTimeSinceStart() const override;
     [[nodiscard]] double getElapsedTime() const override;
@@ -22,6 +22,7 @@ private:
     std::chrono::steady_clock::time_point _startTime;
     std::chrono::steady_clock::time_point _lastTime;
     double _elapsedTime = 0.0;
+    double _timeMultiplier; // Multiplier to speed up or slow down the simulation time
 };
 
 } // namespace POLA::Services
