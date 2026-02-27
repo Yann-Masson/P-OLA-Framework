@@ -8,6 +8,7 @@
 #include "AInputService.hpp"
 #include "Common/DataTypes.hpp"
 #include "Interfaces/IClock.hpp"
+#include "Simulation/DataManager/DataManager.hpp"
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -25,14 +26,8 @@ namespace POLA::Services::Inputs
     class WeatherService : public AInputService<Common::WeatherData>
     {
     public:
-        explicit WeatherService(const forge::ProviderRef &provider);
+        using AInputService<Common::WeatherData>::AInputService;
         Common::WeatherData getInput() override;
-
-    private:
-        void loadWeatherDataFromCSV(const std::string &filePath);
-        int getIndexForTime(double time) const;
-
-        std::vector<WeatherDataCSV> _weatherDataCache; // Cache for weather data loaded from CSV
     };
 
 } // namespace POLA::Services::Inputs

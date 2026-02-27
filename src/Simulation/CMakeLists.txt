@@ -7,6 +7,7 @@ add_library(pola_simulation
     TemperatureFactor/Heater.cpp
     TemperatureFactor/Wall.cpp
     TemperatureFactor/Window.cpp
+    DataManager/DataManager.cpp
 )
 
 target_include_directories(pola_simulation PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

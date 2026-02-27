@@ -28,6 +28,7 @@
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Window.hpp"
 #include "Simulation/SmartThermostat/SmartThermostat.hpp"
+#include "Simulation/DataManager/DataManager.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
@@ -122,7 +123,7 @@ void weatherServiceTest(const forge::Provider &provider)
         std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] "
                   << "Temperature: " << weather.outTemperature << "°C, "
                   << "Sunlight: " << weather.sunlightIntensity << " W/m²" << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
         clock->simulate();
     }
 }
@@ -143,8 +144,12 @@ int main()
 
     std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
 
-    auto simulationClockService = std::make_shared<Clock>(86400); // 1 real second = 1 simulated day
+    // Simulation setup
+    auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
+    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1.csv";
+    auto dataManager = std::make_shared<DataManager>(dataCsvPath);
 
+    // Configuration of the services
     const auto provider = forge::ProviderBuilder()
                               .addService<IClock>(simulationClockService)
                               .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
@@ -161,6 +166,7 @@ int main()
                               .addService<IAIModel, AIModel>()
                               .addService<ISmartThermostat, SmartThermostat>()
                               .addService<Room>()
+                              .addService<DataManager, DataManager>(dataManager)
                               .build();
 
     std::cout << "Service Provider initialized with services:" << std::endl;
