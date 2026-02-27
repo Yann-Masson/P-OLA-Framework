@@ -26,6 +26,7 @@
 #include "Simulation/TemperatureFactor/Wall.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Window.hpp"
+#include "Simulation/SmartThermostat/SmartThermostat.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
@@ -130,6 +131,8 @@ int main() {
                         .addMultiService<ITemperatureFactor, Wall>()
                         .addMultiService<ITemperatureFactor, Wall>()
                         .addMultiService<ITemperatureFactor, Window>()
+                        .addService<IAIModel, AIModel>()
+                        .addService<ISmartThermostat, SmartThermostat>()
                         .addService<Room>()
                         .build();
 
