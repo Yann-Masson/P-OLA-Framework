@@ -17,6 +17,8 @@ class UserScheduleService : public AInputService<Common::UserScheduleData>
 public:
     using AInputService<Common::UserScheduleData>::AInputService;
     Common::UserScheduleData getInput() override;
+private:
+    static constexpr int SCHEDULE_LENGTH = 24; // Number of hours to provide schedule for
 };
 
 } // namespace POLA::Services::Inputs

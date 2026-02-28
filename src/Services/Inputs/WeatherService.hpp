@@ -28,6 +28,8 @@ namespace POLA::Services::Inputs
     public:
         using AInputService<Common::WeatherData>::AInputService;
         Common::WeatherData getInput() override;
+    private:
+        static constexpr int FORECAST_HOURS = 6; // Number of hours to forecast
     };
 
 } // namespace POLA::Services::Inputs

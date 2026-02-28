@@ -11,7 +11,7 @@ UserScheduleData UserScheduleService::getInput()
 	auto clock = _provider.get<IClock>();
 	uint32_t currentTime = clock->getElapsedTimeSinceStart();
 	std::vector<bool> userSchedule;
-	for (int i = 0; i < 24; i++) {
+	for (int i = 0; i < SCHEDULE_LENGTH; i++) {
 		DataPoint dp = dataManager->getDataPointForTime(currentTime + i * 3600);
 		userSchedule.push_back(dp.user_present == 1);
 	}

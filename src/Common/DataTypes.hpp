@@ -11,9 +11,13 @@ struct EnergyPriceData {
     double pricePerKWh;
 };
 
-struct WeatherData {
+struct WeatherDataPoint {
     double outTemperature;
     double sunlightIntensity; // in lux
+};
+
+struct WeatherData {
+    std::vector<WeatherDataPoint> forecast; // Forecast for the next 6 hours
 };
 
 struct UserPreferenceData {
