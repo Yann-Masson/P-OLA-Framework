@@ -15,10 +15,14 @@ public:
     using ATemperatureFactor::ATemperatureFactor;
     double simulate(double insideTemperature) override;
 
-    void setWantedTemperature(double wantedTemperature);
+    /// Set heater power level (0.0 = off, 1.0 = full power).
+    void setPower(double power);
+
+    /// Get current heater power level [0, 1].
+    [[nodiscard]] double getPower() const;
 
 private:
-    double _wantedTemperature;
+    double _power = 0.0; ///< Heater power level [0, 1]
 };
 
 } // namespace POLA::Simulation::TemperatureFactor

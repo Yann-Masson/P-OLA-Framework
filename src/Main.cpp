@@ -1,15 +1,19 @@
 /**
  * @file Main.cpp
  * @brief Entry point for the P-OLA smart thermostat simulator.
+ *
+ * Loads a pre-trained PPO model (produced by P-OLA_Trainer) and runs
+ * the simulation with all services and temperature factors.
+ *
+ * If no model is found, run the trainer first:
+ *   P-OLA_Trainer --help
  */
 
-#include <chrono>
 #include <iostream>
 #include <filesystem>
 #include <thread>
 
 #include <torch/torch.h>
-#include <torch/script.h>
 #include <forge/provider_builder.hpp>
 
 #include "Models/AIModel.hpp"
@@ -39,155 +43,30 @@ using namespace POLA::Services::Inputs;
 using namespace POLA::Simulation;
 using namespace POLA::Simulation::TemperatureFactor;
 
-// Define a simple model struct for TorchScript
-struct TinyModelImpl : torch::nn::Module
-{
-    TinyModelImpl()
-    {
-        fc1 = register_module("fc1", torch::nn::Linear(6, 16));
-        fc2 = register_module("fc2", torch::nn::Linear(16, 1));
-    }
-
-    torch::Tensor forward(torch::Tensor x)
-    {
-        x = torch::relu(fc1->forward(x));
-        x = fc2->forward(x);
-        return x;
-    }
-
-    torch::nn::Linear fc1{nullptr}, fc2{nullptr};
-};
-
-TORCH_MODULE(TinyModel);
-
-static std::string ensureTinyModel(const std::string &modelPath)
-{
+int main() {
     namespace fs = std::filesystem;
 
-    const fs::path path(modelPath);
-    if (path.has_parent_path())
-    {
-        fs::create_directories(path.parent_path());
+    const std::string modelPath = "models/ai_model.pt";
+
+    if (!fs::exists(modelPath)) {
+        std::cerr << "[ERROR] No trained model found at: " << modelPath << std::endl;
+        std::cerr << "[INFO]  Train a model first: P-OLA_Trainer --help" << std::endl;
+        return 1;
     }
 
-    if (fs::exists(path))
-    {
-        return modelPath;
-    }
-
-    std::cout << "[INFO] Creating tiny model..." << std::endl;
-
-    TinyModel model;
-    model->eval();
-
-    // Save using TorchScript serialization via torch::jit::Module
-    // We build a jit::Module manually from the nn::Module parameters
-    torch::jit::script::Module jit_module("TinyModel");
-
-    // Register submodules to match the nn::Module structure
-    auto fc1_jit = torch::jit::script::Module("fc1");
-    fc1_jit.register_parameter("weight", model->fc1->weight.clone(), false);
-    fc1_jit.register_parameter("bias", model->fc1->bias.clone(), false);
-
-    auto fc2_jit = torch::jit::script::Module("fc2");
-    fc2_jit.register_parameter("weight", model->fc2->weight.clone(), false);
-    fc2_jit.register_parameter("bias", model->fc2->bias.clone(), false);
-
-    jit_module.register_module("fc1", fc1_jit);
-    jit_module.register_module("fc2", fc2_jit);
-
-    // Define forward in TorchScript
-    jit_module.define(R"(
-        def forward(self, x):
-            x = torch.matmul(x, self.fc1.weight.t()) + self.fc1.bias
-            x = torch.relu(x)
-            x = torch.matmul(x, self.fc2.weight.t()) + self.fc2.bias
-            return x
-    )");
-
-    jit_module.save(path.string());
-    std::cout << "[SUCCESS] Tiny model saved to: " << path.string() << std::endl;
-
-    return modelPath;
-}
-
-void weatherServiceTest(const forge::Provider &provider)
-{
-    std::cout << "\n--- Weather Service Test ---" << std::endl;
-    auto weatherService = provider.get<IInputService<WeatherData>>();
-    auto clock = provider.get<IClock>();
-
-    std::cout << "Testing weather service forecast with simulated time progression:" << std::endl;
-    for (int i = 0; i < 5; ++i)
-    {
-        WeatherData weather = weatherService->getInput();
-        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] Weather Forecast (6 hours):" << std::endl;
-        for (size_t j = 0; j < weather.forecast.size(); ++j)
-        {
-            std::cout << "  +" << (j + 1) << "h: "
-                      << "Temperature: " << weather.forecast[j].outTemperature << "°C, "
-                      << "Sunlight: " << weather.forecast[j].sunlightIntensity << " lux" << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        clock->simulate();
-    }
-}
-
-void userScheduleServiceTest(const forge::Provider &provider)
-{
-    std::cout << "\n--- User Schedule Service Test ---" << std::endl;
-    auto userScheduleService = provider.get<IInputService<UserScheduleData>>();
-    auto clock = provider.get<IClock>();
-
-    std::cout << "Testing user schedule service with simulated time progression:" << std::endl;
-    for (int i = 0; i < 5; ++i)
-    {
-        UserScheduleData schedule = userScheduleService->getInput();
-        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] User presence schedule for next 24 hours: ";
-        for (size_t j = 0; j < schedule.userPresent.size(); ++j)
-        {
-            std::cout << (schedule.userPresent[j] ? "P" : "A") << " "; // P for present, A for absent
-        }
-        std::cout << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        clock->simulate();
-    }
-}
-
-void energyPriceServiceTest(const forge::Provider &provider)
-{
-    std::cout << "\n--- Energy Price Service Test ---" << std::endl;
-    auto energyPriceService = provider.get<IInputService<EnergyPriceData>>();
-    auto clock = provider.get<IClock>();
-
-    std::cout << "Testing energy price service forecast with simulated time progression:" << std::endl;
-    for (int i = 0; i < 5; ++i)
-    {
-        EnergyPriceData priceData = energyPriceService->getInput();
-        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] Energy Price Forecast (6 hours):" << std::endl;
-        for (size_t j = 0; j < priceData.pricesPerKwh.size(); ++j)
-        {
-            std::cout << "  +" << (j + 1) << "h: $" << priceData.pricesPerKwh[j] << " per kWh" << std::endl;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-        clock->simulate();
-    }
-}
-
-int main()
-{
-    const auto modelPath = ensureTinyModel("models/ai_model.pt");
+    // Test the model standalone
     AIModel model(modelPath);
 
-    constexpr AIState state{
-        21.0,
-        10.0,
-        0.25,
-        2.0,
-        1.2,
-        22.0};
+    constexpr AIState state {
+        21.0,   // tempIn
+        10.0,   // tempOut
+        0.25,   // electricityPrice
+        2.0,    // gpsDistance
+        1.2,    // userVelocity
+        22.0    // targetTemp
+    };
 
-    std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
+    std::cout << "[AIModel] Predicted heater power: " << model.predict(state) << std::endl;
 
     // Simulation setup
     auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
@@ -230,10 +109,6 @@ int main()
     std::cout << "Consumption service initialized with total energy: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh and total cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
 
     auto room = provider.get<Room>();
-
-    // weatherServiceTest(provider); // Test the weather service with simulated time progression
-    // userScheduleServiceTest(provider); // Test the user schedule service with simulated time progression
-    energyPriceServiceTest(provider); // Test the energy price service with simulated time progression
 
     return 0;
 }

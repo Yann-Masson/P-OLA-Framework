@@ -3,6 +3,8 @@
  * @brief Implementation of the smart thermostat controller.
  */
 
+#include <algorithm>
+
 #include "Interfaces/IAIModel.hpp"
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/IInputService.hpp"
@@ -49,10 +51,10 @@ double SmartThermostat::decide(const double currentTemp) const
 
 void SmartThermostat::simulate(const double currentTemp)
 {
-    double wantedTemp = decide(currentTemp);
-    if (wantedTemp < 0) {
+    double power = decide(currentTemp);
+    if (power < 0) {
         return;
     }
     auto heater = _provider.get<TemperatureFactor::Heater>();
-    heater->setWantedTemperature(wantedTemp);
+    heater->setPower(std::clamp(power, 0.0, 1.0));
 }
