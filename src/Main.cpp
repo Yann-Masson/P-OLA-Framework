@@ -154,6 +154,26 @@ void userScheduleServiceTest(const forge::Provider &provider)
     }
 }
 
+void energyPriceServiceTest(const forge::Provider &provider)
+{
+    std::cout << "\n--- Energy Price Service Test ---" << std::endl;
+    auto energyPriceService = provider.get<IInputService<EnergyPriceData>>();
+    auto clock = provider.get<IClock>();
+
+    std::cout << "Testing energy price service forecast with simulated time progression:" << std::endl;
+    for (int i = 0; i < 5; ++i)
+    {
+        EnergyPriceData priceData = energyPriceService->getInput();
+        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] Energy Price Forecast (6 hours):" << std::endl;
+        for (size_t j = 0; j < priceData.pricesPerKwh.size(); ++j)
+        {
+            std::cout << "  +" << (j + 1) << "h: $" << priceData.pricesPerKwh[j] << " per kWh" << std::endl;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        clock->simulate();
+    }
+}
+
 int main()
 {
     const auto modelPath = ensureTinyModel("models/ai_model.pt");
@@ -170,7 +190,7 @@ int main()
     std::cout << "[AIModel] Prediction: " << model.predict(state) << std::endl;
 
     // Simulation setup
-    auto simulationClockService = std::make_shared<Clock>(900 * 4); // 1 real second = 15 minutes
+    auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
     const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled.csv";
     auto dataManager = std::make_shared<DataManager>(dataCsvPath);
 
@@ -203,7 +223,7 @@ int main()
     }
 
     std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;
-    std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricePerKWh << " per kWh" << std::endl;
+    std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricesPerKwh[0] << " per kWh" << std::endl;
     std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().forecast[0].outTemperature << "°C" << std::endl;
     std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm << " km)" << std::endl;
     std::cout << "User preference service initialized with preferred temperature: " << provider.get<IInputService<UserPreferenceData>>()->getInput().maxTemperature << "°C" << std::endl;
@@ -211,8 +231,9 @@ int main()
 
     auto room = provider.get<Room>();
 
-    weatherServiceTest(provider); // Test the weather service with simulated time progression
+    // weatherServiceTest(provider); // Test the weather service with simulated time progression
     // userScheduleServiceTest(provider); // Test the user schedule service with simulated time progression
+    energyPriceServiceTest(provider); // Test the energy price service with simulated time progression
 
     return 0;
 }

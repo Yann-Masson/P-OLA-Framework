@@ -8,7 +8,7 @@
 namespace POLA::Common {
 
 struct EnergyPriceData {
-    double pricePerKWh;
+    std::vector<double> pricesPerKwh; // Price forecast for the next 6 hours
 };
 
 struct WeatherDataPoint {

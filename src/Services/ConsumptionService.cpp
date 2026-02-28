@@ -16,7 +16,7 @@ ConsumptionService::ConsumptionService(const forge::ProviderRef& provider) : _pr
 
 void ConsumptionService::recordEnergy(const double kWh)
 {
-    const double pricePerKWh = _provider.get<Interfaces::IInputService<Common::EnergyPriceData>>()->getInput().pricePerKWh;
+    const double pricePerKWh = _provider.get<Interfaces::IInputService<Common::EnergyPriceData>>()->getInput().pricesPerKwh[0]; // Get current price from the energy price service
     _totalEnergyKWh += kWh;
     _totalCost += kWh * pricePerKWh;
 }
