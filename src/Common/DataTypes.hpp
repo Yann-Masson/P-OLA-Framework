@@ -26,5 +26,9 @@ struct GPSData {
     double velocityKmMin;
 };
 
+struct UserScheduleData {
+    std::vector<bool> userPresent;
+};
+
 } // namespace POLA::Common
 

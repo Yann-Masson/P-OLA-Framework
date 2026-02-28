@@ -22,6 +22,7 @@
 #include "Services/Inputs/WeatherService.hpp"
 #include "Services/Inputs/EnergyPriceService.hpp"
 #include "Services/Inputs/UserPreferenceService.hpp"
+#include "Services/Inputs/UserScheduleService.hpp"
 
 #include "Simulation/Room/Room.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
@@ -128,6 +129,27 @@ void weatherServiceTest(const forge::Provider &provider)
     }
 }
 
+void userScheduleServiceTest(const forge::Provider &provider)
+{
+    std::cout << "\n--- User Schedule Service Test ---" << std::endl;
+    auto userScheduleService = provider.get<IInputService<UserScheduleData>>();
+    auto clock = provider.get<IClock>();
+
+    std::cout << "Testing user schedule service with simulated time progression:" << std::endl;
+    for (int i = 0; i < 5; ++i)
+    {
+        UserScheduleData schedule = userScheduleService->getInput();
+        std::cout << "[Time: " << clock->getElapsedTimeSinceStart() << "s] User presence schedule for next 24 hours: ";
+        for (size_t j = 0; j < schedule.userPresent.size(); ++j)
+        {
+            std::cout << (schedule.userPresent[j] ? "P" : "A") << " "; // P for present, A for absent
+        }
+        std::cout << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+        clock->simulate();
+    }
+}
+
 int main()
 {
     const auto modelPath = ensureTinyModel("models/ai_model.pt");
@@ -146,7 +168,7 @@ int main()
 
     // Simulation setup
     auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
-    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1.csv";
+    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled.csv";
     auto dataManager = std::make_shared<DataManager>(dataCsvPath);
 
     // Configuration of the services
@@ -156,6 +178,7 @@ int main()
                               .addService<IInputService<WeatherData>, WeatherService>()
                               .addService<IInputService<GPSData>, GPSService>()
                               .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
+                              .addService<IInputService<UserScheduleData>, UserScheduleService>()
                               .addService<IConsumptionService, ConsumptionService>()
                               .addMultiService<ITemperatureFactor, Heater>()
                               .addMultiService<ITemperatureFactor, Wall>()
@@ -185,7 +208,8 @@ int main()
 
     auto room = provider.get<Room>();
 
-    weatherServiceTest(provider); // Test the weather service with simulated time progression
+    // weatherServiceTest(provider); // Test the weather service with simulated time progression
+    // userScheduleServiceTest(provider); // Test the user schedule service with simulated time progression
 
     return 0;
 }
