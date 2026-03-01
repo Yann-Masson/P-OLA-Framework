@@ -7,6 +7,7 @@ add_library(pola_services
     Inputs/GPSService.cpp
     Inputs/UserPreferenceService.cpp
     Inputs/WeatherService.cpp
+    Inputs/UserScheduleService.cpp
 )
 
 target_include_directories(pola_services PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

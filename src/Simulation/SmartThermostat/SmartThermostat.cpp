@@ -36,8 +36,8 @@ double SmartThermostat::decide(const double currentTemp) const
 
     AIState state{
         currentTemp,
-        weather.outTemperature,
-        energyPrice.pricePerKWh,
+        weather.forecast[0].outTemperature,
+        energyPrice.pricesPerKwh[0],
         gps.distanceKm,
         gps.velocityKmMin,
         (userPref.minTemperature + userPref.maxTemperature) / 2.0

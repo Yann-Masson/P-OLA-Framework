@@ -15,7 +15,10 @@ EnergyPriceData EnergyPriceService::getInput()
     auto dataManager = _provider.get<Simulation::DataManager>();
     auto clock = _provider.get<IClock>();
     uint32_t currentTime = clock->getElapsedTimeSinceStart();
-    DataPoint dp = dataManager->getDataPointForTime(currentTime);
-    std::cout << "[EnergyPriceService] Providing energy price data for time " << dp.timestamp << "s: $" << dp.price_per_kWh << " per kWh" << std::endl;
-    return EnergyPriceData{dp.price_per_kWh};
+    EnergyPriceData energyPriceData;
+    for (int i = 0; i < PRICES_LENGTH; i++) {
+        DataPoint dp = dataManager->getDataPointForTime(currentTime + i * 3600);
+        energyPriceData.pricesPerKwh.push_back(dp.price_per_kWh);
+    }
+    return energyPriceData;
 }

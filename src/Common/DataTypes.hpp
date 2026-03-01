@@ -8,12 +8,16 @@
 namespace POLA::Common {
 
 struct EnergyPriceData {
-    double pricePerKWh;
+    std::vector<double> pricesPerKwh; // Price forecast for the next 6 hours
+};
+
+struct WeatherDataPoint {
+    double outTemperature;
+    double sunlightIntensity; // in lux
 };
 
 struct WeatherData {
-    double outTemperature;
-    double sunlightIntensity; // in lux
+    std::vector<WeatherDataPoint> forecast; // Forecast for the next 6 hours
 };
 
 struct UserPreferenceData {
@@ -24,6 +28,10 @@ struct UserPreferenceData {
 struct GPSData {
     double distanceKm;
     double velocityKmMin;
+};
+
+struct UserScheduleData {
+    std::vector<bool> userPresent;
 };
 
 } // namespace POLA::Common
