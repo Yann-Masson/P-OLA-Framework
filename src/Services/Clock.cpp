@@ -7,7 +7,8 @@
 
 using namespace POLA::Services;
 
-Clock::Clock()
+Clock::Clock(double timeMultiplier)
+    : _timeMultiplier(timeMultiplier)
 {
     const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
     _lastTime = now;
@@ -17,16 +18,16 @@ Clock::Clock()
 void Clock::simulate()
 {
     const auto now = std::chrono::steady_clock::now();
-    _elapsedTime = std::chrono::duration<double, std::milli>(now - _lastTime).count();
+    _elapsedTime = std::chrono::duration<double>(now - _lastTime).count();
     _lastTime = now;
 }
 
-double Clock::getElapsedTimeSinceStart() const
+uint32_t Clock::getElapsedTimeSinceStart() const
 {
-    return std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now() - _startTime).count();
+    return static_cast<uint32_t>(std::chrono::duration<double>(std::chrono::steady_clock::now() - _startTime).count() * _timeMultiplier);
 }
 
-double Clock::getElapsedTime() const
+uint32_t Clock::getElapsedTime() const
 {
-    return _elapsedTime;
+    return static_cast<uint32_t>(_elapsedTime * _timeMultiplier);
 }

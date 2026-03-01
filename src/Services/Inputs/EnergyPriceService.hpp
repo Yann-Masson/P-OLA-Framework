@@ -7,6 +7,8 @@
 
 #include "AInputService.hpp"
 #include "Common/DataTypes.hpp"
+#include "Simulation/DataManager/DataManager.hpp"
+#include "Interfaces/IClock.hpp"
 
 namespace POLA::Services::Inputs {
 
