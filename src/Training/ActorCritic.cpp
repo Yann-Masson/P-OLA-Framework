@@ -19,8 +19,6 @@ using namespace POLA::Training;
 // Gaussian distribution utilities (not provided by LibTorch C++ API)
 // ============================================================================
 
-namespace {
-
 /**
  * @brief Log probability of x under a Gaussian N(mean, std^2).
  *        log p(x) = -0.5 * ((x - mean)/std)^2 - log(std) - 0.5 * log(2π)
@@ -53,8 +51,6 @@ void orthogonalInit(torch::nn::Linear& layer, double gain = 1.0) {
         torch::nn::init::zeros_(layer->bias);
     }
 }
-
-} // anonymous namespace
 
 // ============================================================================
 // ActorCriticImpl

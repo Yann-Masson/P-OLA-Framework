@@ -19,20 +19,6 @@ using namespace POLA::Simulation::TemperatureFactor;
 
 double Window::simulate(double insideTemperature)
 {
-    const double dtMs = _provider.get<Interfaces::IClock>()->getElapsedTime();
-    const double dtSec = dtMs / 1000.0;
-    if (dtSec <= 0.0) return 0.0;
-
-    const auto weather =
-        _provider.get<Interfaces::IInputService<Common::WeatherData>>()->getInput();
-
-    constexpr double windowConductance = 7.5;        // W/K
-    constexpr double thermalCapacitance = 500000.0;   // J/K
-    constexpr double solarGainFactor = 0.003;         // Simplified solar transmittance
-
-    const double heatLossW = windowConductance * (insideTemperature - weather.outTemperature);
-    const double solarGainW = solarGainFactor * weather.sunlightIntensity;
-
-    return (-heatLossW + solarGainW) * dtSec / thermalCapacitance;
+    // TODO: calculate the real value from the provider WeatherService (from the provider)
+    return -5.0;
 }
-

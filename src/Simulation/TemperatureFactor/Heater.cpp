@@ -20,19 +20,9 @@ using namespace POLA::Simulation::TemperatureFactor;
 
 double Heater::simulate(double insideTemperature)
 {
-    const double dtMs = _provider.get<Interfaces::IClock>()->getElapsedTime();
-    const double dtSec = dtMs / 1000.0;
-    if (dtSec <= 0.0) return 0.0;
-
-    constexpr double maxPowerW = 2000.0;          // Watts
-    constexpr double thermalCapacitance = 500000.0; // J/K
-
-    const double heatOutputW = _power * maxPowerW;
-    const double energyKWh = heatOutputW * dtSec / 3600000.0;  // W·s → kWh
-
-    _provider.get<Interfaces::IConsumptionService>()->recordEnergy(energyKWh);
-
-    return heatOutputW * dtSec / thermalCapacitance;
+    // TODO: calculate the real value from the wanted temperature
+    _provider.get<Interfaces::IConsumptionService>()->recordEnergy(0.1); //TODO: find the real value to record
+    return 5.0;
 }
 
 void Heater::setPower(const double power)

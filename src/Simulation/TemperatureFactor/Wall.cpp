@@ -19,17 +19,6 @@ using namespace POLA::Simulation::TemperatureFactor;
 
 double Wall::simulate(double insideTemperature)
 {
-    const double dtMs = _provider.get<Interfaces::IClock>()->getElapsedTime();
-    const double dtSec = dtMs / 1000.0;
-    if (dtSec <= 0.0) return 0.0;
-
-    const double outsideTemp =
-        _provider.get<Interfaces::IInputService<Common::WeatherData>>()->getInput().outTemperature;
-
-    constexpr double wallConductance = 3.75;        // W/K (one wall segment)
-    constexpr double thermalCapacitance = 500000.0;  // J/K
-
-    const double heatLossW = wallConductance * (insideTemperature - outsideTemp);
-    return -heatLossW * dtSec / thermalCapacitance;
+    // TODO: calculate the real value from the provider WeatherService (from the provider)
+    return -2.0;
 }
-
