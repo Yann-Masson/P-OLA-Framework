@@ -12,8 +12,13 @@ namespace POLA::Simulation::TemperatureFactor {
 class Window : public ATemperatureFactor
 {
 public:
-    using ATemperatureFactor::ATemperatureFactor;
+    Window(const forge::ProviderRef& provider, double area, double uValue, double shgc);
     double simulate(double insideTemperature) override;
+
+private:
+    double _area;
+    double _uValue; // Much higher than a wall (e.g., 1.8)
+    double _shgc;   // Solar Heat Gain Coefficient (e.g., 0.5)
 };
 
 } // namespace POLA::Simulation::TemperatureFactor

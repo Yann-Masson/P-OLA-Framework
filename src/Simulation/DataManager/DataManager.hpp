@@ -28,11 +28,11 @@ namespace POLA::Simulation
         DataManager(std::string filePath);
         std::vector<DataPoint> getAllData() const;
         // Functions to call on each service when they need the data
-        DataPoint getDataPointForTime(u_int32_t time) const;
+        DataPoint getDataPointForTime(uint32_t time) const;
 
     private:
         void loadDataFromCSV(const std::string &filePath);
-        int getIndexForTime(u_int32_t time) const;
+        int getIndexForTime(uint32_t time) const;
 
         std::vector<DataPoint> _dataPoints;
     };

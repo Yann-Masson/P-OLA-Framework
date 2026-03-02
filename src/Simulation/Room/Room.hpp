@@ -9,6 +9,9 @@
 
 namespace POLA::Simulation {
 
+constexpr double AIR_DENSITY = 1.225; // kg/m^3
+constexpr double AIR_SPECIFIC_HEAT = 1005.0; // J/(kg*C)
+
 class Room
 {
 public:
@@ -18,8 +21,9 @@ public:
     void simulate();
 
 private:
-    double _temperature;
+    double _indoorTemp;
     forge::ProviderRef _provider;
+    double _volume;
 };
 
 } // namespace POLA::Simulation

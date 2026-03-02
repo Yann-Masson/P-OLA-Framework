@@ -12,6 +12,12 @@ class ITemperatureFactor
 public:
     virtual ~ITemperatureFactor() = default;
 
+    /**
+     * Simulate the temperature factor's effect for the current time step.
+     *
+     * @param insideTemperature The current inside temperature in degrees Celsius.
+     * @return The net heat loss (positive) or gain (negative) in Watts (Joules per second).
+     */
     virtual double simulate(double insideTemperature) = 0;
 };
 

@@ -19,8 +19,8 @@ namespace POLA::Services::Inputs
     struct WeatherDataCSV
     {
         std::string timestamp;
-        double outTemperature;
-        double sunlightIntensity; // going from 0.0 to 1.0, representing the fraction of maximum sunlight intensity
+        double outdoorTemp;
+        double sunlightLuxIntensity; // going from 0.0 to 1.0, representing the fraction of maximum sunlight intensity
     };
 
     class WeatherService : public AInputService<Common::WeatherData>

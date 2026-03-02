@@ -12,8 +12,8 @@ struct EnergyPriceData {
 };
 
 struct WeatherDataPoint {
-    double outTemperature;
-    double sunlightIntensity; // in lux
+    double outdoorTemp;
+    double sunlightLuxIntensity;
 };
 
 struct WeatherData {
