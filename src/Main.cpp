@@ -70,7 +70,7 @@ int main() {
 
     // Simulation setup
     auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
-    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled.csv";
+    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled_GPS.csv";
     auto dataManager = std::make_shared<DataManager>(dataCsvPath);
 
     // Configuration of the services

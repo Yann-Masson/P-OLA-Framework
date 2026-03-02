@@ -28,8 +28,8 @@ void DataManager::loadDataFromCSV(const std::string &filePath)
         }
 
         // Mapping to the struc (CSV related)
-        // timestamp;user_present;activity;outdoor_temp;humidity;light_level;day_of_week;hour_of_day;price_kWh
-        if (row.size() >= 9)
+        // timestamp;user_present;activity;outdoor_temp;humidity;light_level;day_of_week;hour_of_day;price_kWh;user_distance;user_velocity
+        if (row.size() >= 11)
         {
             DataPoint dp;
             dp.timestamp = row[0];                // Index 0: timestamp
@@ -37,7 +37,11 @@ void DataManager::loadDataFromCSV(const std::string &filePath)
             dp.outdoor_temp = std::stod(row[3]);  // Index 3: outdoor_temp
             dp.light_level = std::stod(row[5]);   // Index 5: light_level
             dp.price_per_kWh = std::stod(row[8]); // Index 8: price_kWh
+            dp.user_distance = std::stod(row[9]); // Index 9: user_distance
+            dp.user_velocity = std::stod(row[10]); // Index 10: user_velocity
             _dataPoints.push_back(dp);
+        } else {
+            std::cerr << "Warning: Skipping malformed line in CSV: " << line << std::endl;
         }
     }
     std::cout << "[DataManager] Successfully loaded " << _dataPoints.size() << " data points from CSV." << std::endl;
