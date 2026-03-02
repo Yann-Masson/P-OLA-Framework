@@ -98,6 +98,7 @@ namespace forge
 
         /**
          * Get a service by its interface/base type
+         * If multiple services are registered, returns the first one
          * @tparam T The type of service to retrieve
          * @return Shared pointer to the service instance
          * @throws std::runtime_error if service not found
@@ -108,17 +109,25 @@ namespace forge
             std::type_index typeIdx(typeid(T));
             auto it = pImpl->services.find(typeIdx);
 
-            if (it == pImpl->services.end())
+            if (it != pImpl->services.end())
             {
-                throw std::runtime_error(
-                    std::string("Service not found: ") + typeid(T).name());
+                return std::static_pointer_cast<T>(it->second);
             }
 
-            return std::static_pointer_cast<T>(it->second);
+            // Check multiServices and return first instance
+            auto multiIt = pImpl->multiServices.find(typeIdx);
+            if (multiIt != pImpl->multiServices.end() && !multiIt->second.empty())
+            {
+                return std::static_pointer_cast<T>(multiIt->second[0]);
+            }
+
+            throw std::runtime_error(
+                std::string("Service not found: ") + typeid(T).name());
         }
 
         /**
          * Try to get a service, returns nullptr if not found
+         * If multiple services are registered, returns the first one
          * @tparam T The type of service to retrieve
          * @return Shared pointer to the service instance or nullptr
          */
@@ -128,12 +137,19 @@ namespace forge
             std::type_index typeIdx(typeid(T));
             auto it = pImpl->services.find(typeIdx);
 
-            if (it == pImpl->services.end())
+            if (it != pImpl->services.end())
             {
-                return nullptr;
+                return std::static_pointer_cast<T>(it->second);
             }
 
-            return std::static_pointer_cast<T>(it->second);
+            // Check multiServices and return first instance
+            auto multiIt = pImpl->multiServices.find(typeIdx);
+            if (multiIt != pImpl->multiServices.end() && !multiIt->second.empty())
+            {
+                return std::static_pointer_cast<T>(multiIt->second[0]);
+            }
+
+            return nullptr;
         }
 
         /**
@@ -145,7 +161,13 @@ namespace forge
         bool has() const
         {
             std::type_index typeIdx(typeid(T));
-            return pImpl->services.find(typeIdx) != pImpl->services.end();
+            if (pImpl->services.find(typeIdx) != pImpl->services.end())
+            {
+                return true;
+            }
+            // Also check multiServices
+            auto multiIt = pImpl->multiServices.find(typeIdx);
+            return multiIt != pImpl->multiServices.end() && !multiIt->second.empty();
         }
 
         /**
@@ -202,13 +224,20 @@ namespace forge
         std::type_index typeIdx(typeid(T));
         auto it = pImpl->services.find(typeIdx);
 
-        if (it == pImpl->services.end())
+        if (it != pImpl->services.end())
         {
-            throw std::runtime_error(
-                std::string("Service not found: ") + typeid(T).name());
+            return std::static_pointer_cast<T>(it->second);
         }
 
-        return std::static_pointer_cast<T>(it->second);
+        // Check multiServices and return first instance
+        auto multiIt = pImpl->multiServices.find(typeIdx);
+        if (multiIt != pImpl->multiServices.end() && !multiIt->second.empty())
+        {
+            return std::static_pointer_cast<T>(multiIt->second[0]);
+        }
+
+        throw std::runtime_error(
+            std::string("Service not found: ") + typeid(T).name());
     }
 
     template <typename T>
@@ -222,12 +251,19 @@ namespace forge
         std::type_index typeIdx(typeid(T));
         auto it = pImpl->services.find(typeIdx);
 
-        if (it == pImpl->services.end())
+        if (it != pImpl->services.end())
         {
-            return nullptr;
+            return std::static_pointer_cast<T>(it->second);
         }
 
-        return std::static_pointer_cast<T>(it->second);
+        // Check multiServices and return first instance
+        auto multiIt = pImpl->multiServices.find(typeIdx);
+        if (multiIt != pImpl->multiServices.end() && !multiIt->second.empty())
+        {
+            return std::static_pointer_cast<T>(multiIt->second[0]);
+        }
+
+        return nullptr;
     }
 
     template <typename T>
@@ -239,7 +275,13 @@ namespace forge
         }
 
         std::type_index typeIdx(typeid(T));
-        return pImpl->services.find(typeIdx) != pImpl->services.end();
+        if (pImpl->services.find(typeIdx) != pImpl->services.end())
+        {
+            return true;
+        }
+        // Also check multiServices
+        auto multiIt = pImpl->multiServices.find(typeIdx);
+        return multiIt != pImpl->multiServices.end() && !multiIt->second.empty();
     }
 
     template <typename T>
