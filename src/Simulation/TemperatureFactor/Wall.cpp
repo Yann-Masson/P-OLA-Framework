@@ -15,10 +15,44 @@
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/IInputService.hpp"
 
+using namespace POLA::Common;
+using namespace POLA::Interfaces;
+
 using namespace POLA::Simulation::TemperatureFactor;
 
-double Wall::simulate(double insideTemperature)
+Wall::Wall(const ProviderRef& provider, double width, double height, double uValue, double solarAbsorptance)
+    : ATemperatureFactor(provider), _width(width), _height(height), _uValue(uValue), _solarAbsorptance(solarAbsorptance)
 {
-    // TODO: calculate the real value from the provider WeatherService (from the provider)
-    return -2.0;
+    _area = _width * _height;
+}
+
+double Wall::simulate(const double insideTemperature)
+{
+    const auto weatherService = _provider.get<IInputService<WeatherData>>();
+    const auto [forecast] = weatherService->getInput();
+
+    if (forecast.empty()) {
+        // If we don't have weather data, we can't calculate heat loss/gain accurately.
+        // For safety, we assume it's cold outside with no sunlight to avoid overheating the room.
+        return _uValue * _area * insideTemperature; // Heat loss to a cold environment
+    }
+
+    const auto [outdoorTemp, sunlightLuxIntensity] = forecast[0]; // Use current weather conditions for this simulation step
+
+    // 1. Calculate conductive/convective heat loss to the outside
+    // Positive result means heat is escaping the room.
+    const auto heatLossConduction = _uValue * _area * (insideTemperature - outdoorTemp);
+
+    // 2. Calculate solar heat gain
+    const auto irradianceWattsPerSqMeter = sunlightLuxIntensity / 110.0; // Convert Lux to W/m²
+
+    // Calculate how much solar heat is absorbed by the wall and transferred inside
+    const auto solarHeatGain = _solarAbsorptance * _area * irradianceWattsPerSqMeter;
+
+    // 3. Calculate Net Heat Loss (Watts)
+    // We subtract solar heat gain because it adds heat to the room, reducing net loss.
+    const auto netHeatLoss = heatLossConduction - solarHeatGain;
+
+    // Return the heat loss in Watts (Joules per second)
+    return netHeatLoss;
 }

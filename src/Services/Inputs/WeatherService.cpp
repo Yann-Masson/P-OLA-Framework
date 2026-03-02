@@ -4,6 +4,8 @@
  */
 
 #include "WeatherService.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Simulation/DataManager/DataManager.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Services::Inputs;
@@ -12,9 +14,9 @@ using namespace POLA::Simulation;
 
 WeatherData WeatherService::getInput()
 {
-    auto clock = _provider.get<IClock>();
-    uint32_t currentTime = clock->getElapsedTimeSinceStart();
-    auto dataManager = _provider.get<DataManager>();
+    const auto clock = _provider.get<IClock>();
+    const auto currentTime = clock->getElapsedTimeSinceStart();
+    const auto dataManager = _provider.get<DataManager>();
     WeatherData weatherData;
     for (int i = 0; i < FORECAST_HOURS; i++) {
         DataPoint dp = dataManager->getDataPointForTime(currentTime + i * 3600);

@@ -12,9 +12,9 @@ using namespace POLA::Simulation;
 
 EnergyPriceData EnergyPriceService::getInput()
 {
-    auto dataManager = _provider.get<Simulation::DataManager>();
-    auto clock = _provider.get<IClock>();
-    uint32_t currentTime = clock->getElapsedTimeSinceStart();
+    const auto dataManager = _provider.get<Simulation::DataManager>();
+    const auto clock = _provider.get<IClock>();
+    const auto currentTime = clock->getElapsedTimeSinceStart();
     EnergyPriceData energyPriceData;
     for (int i = 0; i < PRICES_LENGTH; i++) {
         DataPoint dp = dataManager->getDataPointForTime(currentTime + i * 3600);

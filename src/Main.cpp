@@ -82,12 +82,27 @@ int main() {
                               .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
                               .addService<IInputService<UserScheduleData>, UserScheduleService>()
                               .addService<IConsumptionService, ConsumptionService>()
-                              .addMultiService<ITemperatureFactor, Heater>()
-                              .addMultiService<ITemperatureFactor, Wall>()
-                              .addMultiService<ITemperatureFactor, Wall>()
-                              .addMultiService<ITemperatureFactor, Wall>()
-                              .addMultiService<ITemperatureFactor, Wall>()
-                              .addMultiService<ITemperatureFactor, Window>()
+                              .addService<ITemperatureFactor, Heater>()
+                              .addService<ITemperatureFactor, Wall>(
+                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
+                                      return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
+                                  }))
+                              .addService<ITemperatureFactor, Wall>(
+                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
+                                      return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
+                                  }))
+                              .addService<ITemperatureFactor, Wall>(
+                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
+                                      return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
+                                  }))
+                              .addService<ITemperatureFactor, Wall>(
+                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
+                                      return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
+                                  }))
+                              .addService<ITemperatureFactor, Window>(
+                                  std::function<std::shared_ptr<Window>(ProviderRef)>([](ProviderRef p) {
+                                      return std::make_shared<Window>(p, 2.0, 1.8, 0.5);
+                                  }))
                               .addService<IAIModel, AIModel>()
                               .addService<ISmartThermostat, SmartThermostat>()
                               .addService<Room>()
@@ -103,7 +118,7 @@ int main() {
 
     std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;
     std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricesPerKwh[0] << " per kWh" << std::endl;
-    std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().forecast[0].outTemperature << "°C" << std::endl;
+    std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().forecast[0].outdoorTemp << "°C" << std::endl;
     std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm << " km)" << std::endl;
     std::cout << "User preference service initialized with preferred temperature: " << provider.get<IInputService<UserPreferenceData>>()->getInput().maxTemperature << "°C" << std::endl;
     std::cout << "Consumption service initialized with total energy: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh and total cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
