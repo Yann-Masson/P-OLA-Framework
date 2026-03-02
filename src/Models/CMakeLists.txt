@@ -10,6 +10,7 @@ target_include_directories(pola_models PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(pola_models
     PUBLIC
         pola_interfaces
+        forge
         ${TORCH_LIBRARIES}
 )
 

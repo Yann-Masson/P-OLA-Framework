@@ -9,6 +9,7 @@
 #include <vector>
 
 #include <torch/torch.h>
+#include <forge/provider.hpp>
 
 #include "ActorCritic.hpp"
 #include "RewardFunction.hpp"
@@ -34,7 +35,17 @@ namespace POLA::Training {
  */
 class PPOTrainer {
 public:
-    explicit PPOTrainer(const TrainingConfig& config, uint32_t seed = 42);
+    /**
+     * @brief Construct a PPO trainer with a fully configured provider.
+     * @param provider Service provider with all simulation services
+     * @param config Training configuration
+     * @param seed Random seed for reproducibility
+     */
+    explicit PPOTrainer(
+        forge::Provider provider,
+        const TrainingConfig& config,
+        uint32_t seed = 42
+    );
 
     /// Run the full training loop until totalTimesteps is reached.
     void train();

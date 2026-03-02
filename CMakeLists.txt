@@ -11,6 +11,9 @@ project(P-OLA_Simulator)
 # Place executables at the root of the build directory.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
 
+# Define DATA_DIR globally for all targets
+add_compile_definitions(DATA_DIR="${CMAKE_CURRENT_SOURCE_DIR}/data")
+
 # --- LIBS CONFIGURATION ---
 set(LIBS_DIR "${CMAKE_CURRENT_SOURCE_DIR}/libs")
 

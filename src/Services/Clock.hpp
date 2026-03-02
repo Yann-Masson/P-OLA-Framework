@@ -16,6 +16,7 @@ namespace POLA::Services
     public:
         Clock(double timeMultiplier = 1.0);
         void simulate() override;
+        void reset() override;
         [[nodiscard]] uint32_t getElapsedTimeSinceStart() const override;
         [[nodiscard]] uint32_t getElapsedTime() const override;
 

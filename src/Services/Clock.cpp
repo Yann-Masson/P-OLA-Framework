@@ -22,6 +22,14 @@ void Clock::simulate()
     _lastTime = now;
 }
 
+void Clock::reset()
+{
+    const auto now = std::chrono::steady_clock::now();
+    _lastTime = now;
+    _startTime = now;
+    _elapsedTime = 0;
+}
+
 uint32_t Clock::getElapsedTimeSinceStart() const
 {
     return static_cast<uint32_t>(std::chrono::duration<double>(std::chrono::steady_clock::now() - _startTime).count() * _timeMultiplier);

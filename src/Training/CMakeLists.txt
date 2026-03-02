@@ -12,6 +12,7 @@ target_include_directories(pola_training PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(pola_training
     PUBLIC
         pola_common
+        forge
         ${TORCH_LIBRARIES}
 )
 

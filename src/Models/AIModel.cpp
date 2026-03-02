@@ -13,8 +13,8 @@ namespace fs = std::filesystem;
 
 using namespace POLA::Models;
 
-AIModel::AIModel(std::string modelPath)
-    : _modelPath(std::move(modelPath))
+AIModel::AIModel(const forge::ProviderRef& provider, std::string modelPath)
+    : _modelPath(std::move(modelPath)), _provider(provider)
 {
 }
 

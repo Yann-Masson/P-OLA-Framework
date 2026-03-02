@@ -33,8 +33,14 @@ void PPOTrainer::RolloutData::clear()
 // PPOTrainer
 // ============================================================================
 
-PPOTrainer::PPOTrainer(const TrainingConfig &config, const uint32_t seed)
-    : _config(config), _env(config, seed), _rewardFn(config)
+PPOTrainer::PPOTrainer(
+    forge::Provider provider,
+    const TrainingConfig &config,
+    const uint32_t seed
+)
+    : _config(config)
+    , _env(std::move(provider), config, seed)
+    , _rewardFn(config)
 {
     // Select compute device
     if (torch::cuda::is_available())

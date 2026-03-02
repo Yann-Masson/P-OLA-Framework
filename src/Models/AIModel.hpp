@@ -7,6 +7,7 @@
 
 #include <string>
 #include <torch/script.h>
+#include <forge/provider.hpp>
 
 #include "Interfaces/IAIModel.hpp"
 
@@ -15,7 +16,7 @@ namespace POLA::Models {
 class AIModel : public Interfaces::IAIModel
 {
 public:
-    explicit AIModel(std::string modelPath = "models/ai_model.pt");
+    explicit AIModel(const forge::ProviderRef& provider, std::string modelPath = "models/ai_model.pt");
     double predict(const Common::AIState& state) override;
 
 private:
@@ -25,6 +26,7 @@ private:
     std::string _modelPath;
     torch::jit::script::Module _module;
     torch::Device _device = torch::kCPU;
+    forge::ProviderRef _provider;
 };
 
 } // namespace POLA::Models
