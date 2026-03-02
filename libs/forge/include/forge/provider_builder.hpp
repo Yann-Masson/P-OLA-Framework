@@ -72,11 +72,11 @@ namespace forge
                                            {
             auto instance = createInstance<TImpl>();
             // Register under interface type
-            provider.pImpl->registerMultiService<TInterface>(
+            provider.pImpl->registerService<TInterface>(
                 std::static_pointer_cast<TInterface>(instance)
             );
             // Also register under concrete type
-            provider.pImpl->registerMultiService<TImpl>(instance); });
+            provider.pImpl->registerService<TImpl>(instance); });
 
             return *this;
         }
@@ -122,10 +122,10 @@ namespace forge
             }
 
             // Register under interface type
-            provider.pImpl->registerMultiService<TInterface>(
+            provider.pImpl->registerService<TInterface>(
                 std::static_pointer_cast<TInterface>(instance));
             // Also register under concrete type
-            provider.pImpl->registerMultiService<TImpl>(instance);
+            provider.pImpl->registerService<TImpl>(instance);
             return *this;
         }
 
@@ -151,11 +151,11 @@ namespace forge
                                            {
             auto instance = factory(provider.ref());
             // Register under interface type
-            provider.pImpl->registerMultiService<TInterface>(
+            provider.pImpl->registerService<TInterface>(
                 std::static_pointer_cast<TInterface>(instance)
             );
             // Also register under concrete type
-            provider.pImpl->registerMultiService<TImpl>(instance); });
+            provider.pImpl->registerService<TImpl>(instance); });
 
             return *this;
         }

@@ -4,6 +4,8 @@
  */
 
 #include "WeatherService.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Simulation/DataManager/DataManager.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Services::Inputs;
