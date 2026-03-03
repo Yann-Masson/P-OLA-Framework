@@ -123,10 +123,10 @@ int main()
                         .addService<ILogger, ConsoleLogger>()
                         .addService<IDatabase, PostgresDatabase>()
                         .addService<UserService>()
-                        // Register multiple plugins using addMultiService
-                        .addMultiService<IPlugin, EmailPlugin>()
-                        .addMultiService<IPlugin, SlackPlugin>()
-                        .addMultiService<IPlugin, LogPlugin>()
+                        // Register multiple plugins using addService
+                        .addService<IPlugin, EmailPlugin>()
+                        .addService<IPlugin, SlackPlugin>()
+                        .addService<IPlugin, LogPlugin>()
                         .build();
 
     std::cout << std::endl;

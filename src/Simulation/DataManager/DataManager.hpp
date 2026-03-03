@@ -20,6 +20,8 @@ namespace POLA::Simulation
         double outdoor_temp; // for the WeatherService
         double light_level; // for the WeatherService
         double price_per_kWh; // for the EnergyPriceService
+        double user_distance; // for the GPSService (distance from home in m)
+        double user_velocity; // for the GPSService (velocity in m/s)
     };
 
     class DataManager
