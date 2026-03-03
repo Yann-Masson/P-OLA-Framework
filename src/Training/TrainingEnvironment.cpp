@@ -5,13 +5,13 @@
 
 #include "TrainingEnvironment.hpp"
 
-#include <cmath>
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 
+#include "Common/DataTypes.hpp"
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/IInputService.hpp"
-#include "Common/DataTypes.hpp"
 #include "Simulation/Room/Room.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 
@@ -25,44 +25,39 @@ using namespace POLA::Interfaces;
 using namespace POLA::Simulation;
 using namespace POLA::Simulation::TemperatureFactor;
 
-TrainingEnvironment::TrainingEnvironment(
-    forge::Provider provider,
-    const TrainingConfig& config,
-    const uint32_t seed
-)
-    : _provider(std::move(provider))
-    , _config(config)
-    , _rewardFn(config)
-    , _rng(seed)
+TrainingEnvironment::TrainingEnvironment(forge::Provider provider,
+                                         const TrainingConfig& config,
+                                         const uint32_t seed)
+    : _provider(std::move(provider)), _config(config), _rewardFn(config),
+      _rng(seed)
 {
-    std::cout << "[TrainingEnvironment] Initialized with full simulation provider" << std::endl;
+    std::cout << "[TrainingEnvironment] Initialized with full simulation provider"
+        << std::endl;
 }
 
 AIState TrainingEnvironment::reset()
 {
+    std::cout << "[TrainingEnvironment] Resetting environment for new episode..." << std::endl;
     _step = 0;
 
     // Reset the clock to zero
     auto clock = _provider.get<IClock>();
     clock->reset();
 
-    // Get the room and set a random initial temperature
+    // Randomize starting room temperature for this episode
     auto room = _provider.get<Room>();
     std::uniform_real_distribution<double> tempInDist(14.0, 24.0);
-    // Note: We would need a setter in Room to change the temperature
-    // For now, the room will start at its default temperature
+    room->setTemperature(tempInDist(_rng));
 
     // Reset heater to off
     auto heater = _provider.get<Heater>();
     heater->setPower(0.0);
 
-    std::cout << "[TrainingEnvironment] Episode reset. Initial room temp: "
-              << room->getTemperature() << "°C" << std::endl;
-
     return getState();
 }
 
-std::tuple<AIState, double, bool> TrainingEnvironment::step(double heaterPower)
+std::tuple<AIState, double, bool>
+TrainingEnvironment::step(double heaterPower)
 {
     heaterPower = std::clamp(heaterPower, 0.0, 1.0);
 
@@ -110,14 +105,8 @@ AIState TrainingEnvironment::getState() const
     const double price = energyPrice.pricesPerKwh[0];
     const double gpsDistance = gps.distanceKm;
     const double gpsVelocity = gps.velocityKmMin;
-    const double targetTemp = (userPref.minTemperature + userPref.maxTemperature) / 2.0;
+    const double targetTemp =
+        (userPref.minTemperature + userPref.maxTemperature) / 2.0;
 
-    return {
-        tempIn,
-        tempOut,
-        price,
-        gpsDistance,
-        gpsVelocity,
-        targetTemp
-    };
+    return {tempIn, tempOut, price, gpsDistance, gpsVelocity, targetTemp};
 }

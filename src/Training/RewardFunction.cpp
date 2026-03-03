@@ -7,6 +7,7 @@
 
 #include <cmath>
 #include <algorithm>
+#include <iostream>
 
 using namespace POLA::Training;
 
@@ -15,6 +16,10 @@ RewardFunction::RewardFunction(const TrainingConfig& config)
     , _wEconomy(config.wEconomy)
     , _wGps(config.wGps)
 {
+    std::cout << "[RewardFunction] Initialized with weights:\n"
+              << "  Comfort: " << _wComfort << "\n"
+              << "  Economy: " << _wEconomy << "\n"
+              << "  GPS:     " << _wGps << std::endl;
 }
 
 double RewardFunction::compute(

@@ -5,6 +5,7 @@ add_library(pola_training
     TrainingEnvironment.cpp
     ActorCritic.cpp
     PPOTrainer.cpp
+    PPOTrainingAgent.cpp
 )
 
 target_include_directories(pola_training PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

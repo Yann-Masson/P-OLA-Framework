@@ -10,6 +10,9 @@
 #include "Interfaces/IInputService.hpp"
 
 #include "SmartThermostat.hpp"
+
+#include <iostream>
+
 #include "Common/DataTypes.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 
@@ -23,12 +26,17 @@ SmartThermostat::SmartThermostat(const forge::ProviderRef& provider):
 {
 }
 
-double SmartThermostat::decide(const double currentTemp) const
+double SmartThermostat::decide(const double currentTemp)
 {
-    auto clock = _provider.get<IClock>()->getElapsedTime();
-    if (clock < DECIDE_DELAY) {
+    auto elapsedTime = _provider.get<IClock>()->getElapsedTime();
+
+    _totalElapsedTime += elapsedTime;
+
+    if (_totalElapsedTime < DECIDE_DELAY) {
         return -1.0;
     }
+
+    _totalElapsedTime = 0; // reset timer after decision
 
     // Aggregation of data from input services
     const auto energyPrice = _provider.get<IInputService<EnergyPriceData>>()->getInput();

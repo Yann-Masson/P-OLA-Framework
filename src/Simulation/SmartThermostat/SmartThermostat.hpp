@@ -19,8 +19,9 @@ public:
     void simulate(double currentTemp) override;
 
 private:
-    double decide(double currentTemp) const;
+    double decide(double currentTemp);
     forge::ProviderRef _provider;
+    uint32_t _totalElapsedTime;
 };
 
 } // namespace POLA::Simulation

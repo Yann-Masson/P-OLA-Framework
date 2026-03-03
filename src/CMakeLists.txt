@@ -21,6 +21,7 @@ target_link_libraries(${PROJECT_NAME}
         pola_models
         pola_services
         pola_simulation
+        pola_training
         forge
         ${TORCH_LIBRARIES}
 )

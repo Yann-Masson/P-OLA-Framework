@@ -1,34 +1,39 @@
 /**
  * @file ProviderSetup.cpp
- * @brief Implementation of provider setup helper functions.
+ * @brief Implementation of the composable simulation builder.
  */
 
 #include "ProviderSetup.hpp"
 
-#include <iostream>
 #include <filesystem>
-#include <forge/provider_builder.hpp>
+#include <iostream>
 
 #include "Services/Clock.hpp"
 #include "Services/ConsumptionService.hpp"
-#include "Services/Inputs/GPSService.hpp"
-#include "Services/Inputs/WeatherService.hpp"
 #include "Services/Inputs/EnergyPriceService.hpp"
+#include "Services/Inputs/GPSService.hpp"
 #include "Services/Inputs/UserPreferenceService.hpp"
 #include "Services/Inputs/UserScheduleService.hpp"
+#include "Services/Inputs/WeatherService.hpp"
 
-#include "Simulation/Room/Room.hpp"
-#include "Simulation/TemperatureFactor/Wall.hpp"
-#include "Simulation/TemperatureFactor/Heater.hpp"
-#include "Simulation/TemperatureFactor/Window.hpp"
-#include "Simulation/SmartThermostat/SmartThermostat.hpp"
 #include "Simulation/DataManager/DataManager.hpp"
+#include "Simulation/Room/Room.hpp"
+#include "Simulation/SmartThermostat/SmartThermostat.hpp"
+#include "Simulation/TemperatureFactor/Heater.hpp"
+#include "Simulation/TemperatureFactor/Wall.hpp"
+#include "Simulation/TemperatureFactor/Window.hpp"
 
 #include "Models/AIModel.hpp"
 #include "Models/RuleBasedModel.hpp"
 
-#include "Interfaces/IClock.hpp"
 #include "Interfaces/IAIModel.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Interfaces/IEnvironmentControl.hpp"
+
+#include "Services/TrainingClock.hpp"
+#include "Training/PPOTrainingAgent.hpp"
+
+#include <random>
 
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
@@ -37,84 +42,279 @@ using namespace POLA::Services::Inputs;
 using namespace POLA::Simulation;
 using namespace POLA::Simulation::TemperatureFactor;
 
-namespace POLA::Common {
+using namespace POLA::Common;
 
-forge::Provider createSimulationProvider(
-    const double timeScale,
-    const std::string& dataCsvPath,
-    const std::string& modelPath,
-    const double startingRoomTemp
-) {
+// ============================================================================
+// SimulationBuilder
+// ============================================================================
+
+SimulationBuilder& SimulationBuilder::setClock(const double timeScale)
+{
+    _timeScale = timeScale;
+    return *this;
+}
+
+SimulationBuilder&
+SimulationBuilder::useTrainingClock(const double fixedDtSeconds)
+{
+    _trainingClockDt = fixedDtSeconds;
+    return *this;
+}
+
+SimulationBuilder&
+SimulationBuilder::setDataSource(const std::string& csvPath)
+{
+    _dataCsvPath = csvPath;
+    return *this;
+}
+
+SimulationBuilder&
+SimulationBuilder::setRoom(const double startingTemperature)
+{
+    _startingRoomTemp = startingTemperature;
+    _hasRoom = true;
+    return *this;
+}
+
+SimulationBuilder& SimulationBuilder::addWall(const double width,
+                                              const double height,
+                                              const double uValue,
+                                              const double solarAbsorptance)
+{
+    _registrations.push_back(
+        [width, height, uValue, solarAbsorptance](ProviderBuilder& builder)
+        {
+            builder.addService<ITemperatureFactor, Wall>(
+                std::function<std::shared_ptr<Wall>(ProviderRef)>(
+                    [width, height, uValue, solarAbsorptance](ProviderRef p)
+                    {
+                        return std::make_shared<Wall>(p, width, height, uValue,
+                                                      solarAbsorptance);
+                    }));
+        });
+    return *this;
+}
+
+SimulationBuilder& SimulationBuilder::addWindow(const double area,
+                                                const double uValue,
+                                                const double shgc)
+{
+    _registrations.push_back([area, uValue, shgc](ProviderBuilder& builder)
+    {
+        builder.addService<ITemperatureFactor, Window>(
+            std::function<std::shared_ptr<Window>(ProviderRef)>(
+                [area, uValue, shgc](ProviderRef p)
+                {
+                    return std::make_shared<Window>(p, area, uValue, shgc);
+                }));
+    });
+    return *this;
+}
+
+SimulationBuilder& SimulationBuilder::addHeater(const double maxPowerW)
+{
+    _registrations.push_back([maxPowerW](ProviderBuilder& builder)
+    {
+        builder.addService<ITemperatureFactor, Heater>(
+            std::function<std::shared_ptr<Heater>(ProviderRef)>(
+                [maxPowerW](ProviderRef p)
+                {
+                    return std::make_shared<Heater>(p, maxPowerW);
+                }));
+    });
+    return *this;
+}
+
+SimulationBuilder& SimulationBuilder::useAIModel(const std::string& modelPath)
+{
+    _modelPath = modelPath;
+    _useRuleBased = false;
+    return *this;
+}
+
+SimulationBuilder& SimulationBuilder::useRuleBasedModel()
+{
+    _modelPath.clear();
+    _useRuleBased = true;
+    return *this;
+}
+
+SimulationBuilder&
+SimulationBuilder::useTrainingAgent(const Training::TrainingConfig& config)
+{
+    _modelPath.clear();
+    _useRuleBased = false;
+    _hasTrainingAgent = true;
+
+    // Register the PPOTrainingAgent as IAIModel
+    _registrations.push_back([config](ProviderBuilder& pb)
+    {
+        pb.addService<IAIModel, Training::PPOTrainingAgent>(
+            std::function<std::shared_ptr<Training::PPOTrainingAgent>(ProviderRef)>(
+                [config](ProviderRef p)
+                {
+                    return std::make_shared<Training::PPOTrainingAgent>(p, config);
+                }));
+    });
+
+    return *this;
+}
+
+Provider SimulationBuilder::build()
+{
     namespace fs = std::filesystem;
 
-    // Create the clock service
-    auto simulationClockService = std::make_shared<Clock>(timeScale);
+    std::cout << "[SimulationBuilder] Building provider with configuration:\n"
+        << "  Time scale:       " << _timeScale << " (1 real second = "
+        << _timeScale / 60.0 << " simulated minutes)\n"
+        << "  Training clock dt: " << (_trainingClockDt > 0.0 ? std::to_string(_trainingClockDt) + "s" : "N/A") << "\n"
+        << "  Data CSV path:    " << (_dataCsvPath.empty() ? "Default dataset" : _dataCsvPath) << "\n"
+        << "  Model path:       " << (_modelPath.empty() ? (_useRuleBased ? "Using rule-based model" : "No model specified") : _modelPath) << "\n"
+        << "  Starting room temp: " << (_hasRoom ? std::to_string(_startingRoomTemp) + "C" : "N/A") << "\n"
+        << "  Has training agent: " << (_hasTrainingAgent ? "Yes" : "No") << "\n"
+        << "  Registered temperature factors: " << _registrations.size() << "\n"
+        << std::endl;
 
-    // Determine data path
-    std::string dataPath = dataCsvPath;
-    if (dataPath.empty()) {
-        dataPath = std::string(DATA_DIR) + "/data_home_1_scheduled.csv";
+    // --- Clock ---
+    std::shared_ptr<IClock> clockService;
+    if (_trainingClockDt > 0.0)
+    {
+        std::cout << "[SimulationBuilder] Using TrainingClock with fixed dt="
+            << _trainingClockDt << "s" << std::endl;
+        clockService = std::make_shared<TrainingClock>(_trainingClockDt);
+    }
+    else
+    {
+        clockService = std::make_shared<Clock>(_timeScale);
     }
 
-    // Create data manager
+    // --- Data source ---
+    std::string dataPath = _dataCsvPath;
+    if (dataPath.empty())
+    {
+        dataPath = std::string(DATA_DIR) + "/data_home_1_scheduled.csv";
+    }
     auto dataManager = std::make_shared<DataManager>(dataPath);
 
-    // Build the provider
-    auto builder = forge::ProviderBuilder()
-        .addService<IClock>(simulationClockService)
+    std::cout << "[SimulationBuilder] DataManager initialized with data from: " << dataPath
+        << std::endl;
+
+    std::cout << "[SimulationBuilder] Building provider with " << _registrations.size()
+        << " temperature factors and "
+        << (_hasTrainingAgent ? "a training agent" : (_useRuleBased ? "a rule-based model" : "an AI model"))
+        << std::endl;
+    // --- Core services ---
+    auto builder =
+        ProviderBuilder()
+        .addService(clockService)
         .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
         .addService<IInputService<WeatherData>, WeatherService>()
         .addService<IInputService<GPSData>, GPSService>()
-        .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
+        .addService<IInputService<UserPreferenceData>,
+                    UserPreferenceService>()
         .addService<IInputService<UserScheduleData>, UserScheduleService>()
-        .addService<IConsumptionService, ConsumptionService>()
-        .addService<ITemperatureFactor, Heater>()
-        // Add 4 walls for the room (rectangular room)
-        .addService<ITemperatureFactor, Wall>(
-            std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
-            }))
-        .addService<ITemperatureFactor, Wall>(
-            std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
-            }))
-        .addService<ITemperatureFactor, Wall>(
-            std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
-            }))
-        .addService<ITemperatureFactor, Wall>(
-            std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
-            }))
-        // Add window
-        .addService<ITemperatureFactor, Window>(
-            std::function<std::shared_ptr<Window>(ProviderRef)>([](ProviderRef p) {
-                return std::make_shared<Window>(p, 2.0, 1.8, 0.5);
-            }));
+        .addService<IConsumptionService, ConsumptionService>();
 
-    // Add AI model or rule-based model
-    if (!modelPath.empty() && fs::exists(modelPath)) {
-        std::cout << "[ProviderSetup] Using AI model from: " << modelPath << std::endl;
-        builder.addService<IAIModel, Models::AIModel>(
-            std::function<std::shared_ptr<Models::AIModel>(ProviderRef)>(
-                [modelPath](ProviderRef p) {
-                    return std::make_shared<Models::AIModel>(p, modelPath);
-                }));
-    } else {
-        std::cout << "[ProviderSetup] Using rule-based model (no model path provided or file not found)" << std::endl;
-        builder.addService<IAIModel, Models::RuleBasedModel>();
+    std::cout << "[SimulationBuilder] Core services registered: Clock, EnergyPriceService, WeatherService, GPSService, UserPreferenceService, UserScheduleService, ConsumptionService"
+        << std::endl;
+
+    // --- Temperature factors (Lego bricks) ---
+    for (auto& registration : _registrations)
+    {
+        registration(builder);
     }
 
-    // Add remaining services
-    builder.addService<ISmartThermostat, SmartThermostat>()
-           .addService<Room>(
-               std::function<std::shared_ptr<Room>(ProviderRef)>(
-                   [startingRoomTemp](ProviderRef p) {
-                       return std::make_shared<Room>(p, startingRoomTemp);
-                   }))
-           .addService<DataManager, DataManager>(dataManager);
+    std::cout << "[SimulationBuilder] Registered " << _registrations.size()
+        << " temperature factors (walls, windows, heaters)"
+        << std::endl;
+
+    // --- AI model (only when NOT using the training agent) ---
+    if (!_hasTrainingAgent)
+    {
+        if (!_modelPath.empty() && fs::exists(_modelPath))
+        {
+            std::cout << "[SimulationBuilder] Using AI model from: " << _modelPath
+                << std::endl;
+            auto modelPath = _modelPath;
+            builder.addService<IAIModel, Models::AIModel>(
+                std::function<std::shared_ptr<Models::AIModel>(ProviderRef)>(
+                    [modelPath](ProviderRef p)
+                    {
+                        return std::make_shared<Models::AIModel>(p, modelPath);
+                    }));
+        }
+        else
+        {
+            std::cout << "[SimulationBuilder] Using rule-based model" << std::endl;
+            builder.addService<IAIModel, Models::RuleBasedModel>();
+        }
+    }
+
+    std::cout << "[SimulationBuilder] AI model registered: "
+        << (_hasTrainingAgent ? "N/A (training agent handles this)" : (_useRuleBased ? "RuleBasedModel" : "AIModel from " + _modelPath))
+        << std::endl;
+
+    // --- SmartThermostat ---
+    builder.addService<ISmartThermostat, SmartThermostat>();
+
+    std::cout << "[SimulationBuilder] SmartThermostat service registered" << std::endl;
+
+    // --- Room ---
+    if (_hasRoom)
+    {
+        auto startTemp = _startingRoomTemp;
+        builder.addService<Room>(std::function<std::shared_ptr<Room>(ProviderRef)>(
+            [startTemp](ProviderRef p)
+            {
+                return std::make_shared<Room>(p, startTemp);
+            }));
+    }
+
+    std::cout << "[SimulationBuilder] Room service registered with starting temperature: "
+        << (_hasRoom ? std::to_string(_startingRoomTemp) + "C" : "N/A") << std::endl;
+
+    // --- DataManager ---
+    builder.addService<DataManager, DataManager>(dataManager);
+
+    std::cout << "[SimulationBuilder] DataManager service registered with data from: " << dataPath
+        << std::endl;
 
     return builder.build();
 }
 
-} // namespace POLA::Common
+// ============================================================================
+// Convenience wrapper (backward compatibility)
+// ============================================================================
+
+Provider createSimulationProvider(const double timeScale,
+                                  const std::string& dataCsvPath,
+                                  const std::string& modelPath,
+                                  const double startingRoomTemp)
+{
+    auto builder =
+        SimulationBuilder()
+        .setClock(timeScale)
+        .setDataSource(dataCsvPath)
+        .setRoom(startingRoomTemp)
+        // Standard rectangular room: 4 walls (5m×2.5m and 4m×2.5m pairs)
+        .addWall(5.0, 2.5, 0.3, 0.6)
+        .addWall(4.0, 2.5, 0.3, 0.6)
+        .addWall(5.0, 2.5, 0.3, 0.6)
+        .addWall(4.0, 2.5, 0.3, 0.6)
+        // 1 window
+        .addWindow(2.0, 1.8, 0.5)
+        // 1 heater (2000W)
+        .addHeater(2000.0);
+
+    // AI or rule-based model
+    if (!modelPath.empty())
+    {
+        builder.useAIModel(modelPath);
+    }
+    else
+    {
+        builder.useRuleBasedModel();
+    }
+
+    return builder.build();
+}
