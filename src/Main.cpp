@@ -21,6 +21,7 @@
 
 #include "Services/Clock.hpp"
 #include "Services/ConsumptionService.hpp"
+#include "Services/UserComfortService.hpp"
 
 #include "Services/Inputs/GPSService.hpp"
 #include "Services/Inputs/WeatherService.hpp"
@@ -82,6 +83,7 @@ int main() {
                               .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
                               .addService<IInputService<UserScheduleData>, UserScheduleService>()
                               .addService<IConsumptionService, ConsumptionService>()
+                              .addService<IUserComfortService, UserComfortService>()
                               .addService<ITemperatureFactor, Heater>()
                               .addService<ITemperatureFactor, Wall>(
                                   std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
