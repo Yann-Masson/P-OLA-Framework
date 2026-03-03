@@ -40,7 +40,7 @@ public:
      * @param seed Random seed for episode initialization
      */
     explicit TrainingEnvironment(
-        forge::Provider provider,
+        forge::ProviderRef provider,
         const TrainingConfig& config,
         uint32_t seed = 42
     );
@@ -59,7 +59,7 @@ public:
     [[nodiscard]] Common::AIState getState() const;
 
 private:
-    forge::Provider _provider;
+    forge::ProviderRef _provider;
     TrainingConfig _config;
     RewardFunction _rewardFn;
     std::mt19937 _rng;

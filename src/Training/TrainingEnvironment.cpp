@@ -25,10 +25,10 @@ using namespace POLA::Interfaces;
 using namespace POLA::Simulation;
 using namespace POLA::Simulation::TemperatureFactor;
 
-TrainingEnvironment::TrainingEnvironment(forge::Provider provider,
+TrainingEnvironment::TrainingEnvironment(forge::ProviderRef provider,
                                          const TrainingConfig& config,
                                          const uint32_t seed)
-    : _provider(std::move(provider)), _config(config), _rewardFn(config),
+    : _provider(provider), _config(config), _rewardFn(provider, config),
       _rng(seed)
 {
     std::cout << "[TrainingEnvironment] Initialized with full simulation provider"

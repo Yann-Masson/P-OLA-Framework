@@ -43,7 +43,7 @@ using namespace POLA::Interfaces;
 int main(const int argc, char *argv[]) {
   TrainingConfig config;
   uint32_t seed = 42;
-  std::string dataCsvPath;
+  std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled_GPS.csv";
 
   // Parse command-line arguments
   for (int i = 1; i < argc; ++i) {
@@ -147,6 +147,10 @@ int main(const int argc, char *argv[]) {
   for (int step = 0; step < config.totalTimesteps; ++step) {
     clock->simulate(); // Advance time
     room->simulate();  // Simulate room: calls thermostat, which calls predict()
+
+    std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
+              << "C | Step: " << step + 1 << "/" << config.totalTimesteps
+              << std::flush;
   }
 
   // Final model export is triggered internally by the PPOTrainingAgent

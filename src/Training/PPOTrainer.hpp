@@ -42,7 +42,7 @@ public:
      * @param seed Random seed for reproducibility
      */
     explicit PPOTrainer(
-        forge::Provider provider,
+        forge::ProviderRef provider,
         const TrainingConfig& config,
         uint32_t seed = 42
     );

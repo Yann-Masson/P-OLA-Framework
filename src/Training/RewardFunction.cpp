@@ -11,15 +11,17 @@
 
 using namespace POLA::Training;
 
-RewardFunction::RewardFunction(const TrainingConfig& config)
-    : _wComfort(config.wComfort)
-    , _wEconomy(config.wEconomy)
-    , _wGps(config.wGps)
+RewardFunction::RewardFunction(const forge::ProviderRef& provider,
+                               const TrainingConfig& config)
+    : _provider(provider)
+      , _wComfort(config.wComfort)
+      , _wEconomy(config.wEconomy)
+      , _wGps(config.wGps)
 {
     std::cout << "[RewardFunction] Initialized with weights:\n"
-              << "  Comfort: " << _wComfort << "\n"
-              << "  Economy: " << _wEconomy << "\n"
-              << "  GPS:     " << _wGps << std::endl;
+        << "  Comfort: " << _wComfort << "\n"
+        << "  Economy: " << _wEconomy << "\n"
+        << "  GPS:     " << _wGps << std::endl;
 }
 
 double RewardFunction::compute(
@@ -44,10 +46,12 @@ double RewardFunction::compute(
     // This forces the agent to develop a predictive strategy based on
     // the user's velocity vector, planning pre-heating in advance.
     double gpsPenalty = 0.0;
-    if (nextState.gpsDistance < 0.1) {
+    if (nextState.gpsDistance < 0.1)
+    {
         // User is home or within 100 meters
         const double deficit = state.targetTemp - nextState.tempIn;
-        if (deficit > 1.0) {
+        if (deficit > 1.0)
+        {
             // Aggressive penalty scaled by temperature deficit
             gpsPenalty = deficit * 20.0;
         }

@@ -12,7 +12,6 @@
 #include "Simulation/SmartThermostat/SmartThermostat.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
 
-
 using namespace POLA::Interfaces;
 using namespace POLA::Simulation;
 
@@ -68,11 +67,14 @@ void Room::simulate() {
       totalHeatLossWatts *
       deltaTimeSeconds; // Convert Watts to Joules over the time step
 
-  const auto airMassKg = _volume * AIR_DENSITY;
+  // Effective thermal capacity: air mass + building structure (walls,
+  // furniture, etc.)
+  const auto airThermalCapacity = _volume * AIR_DENSITY * AIR_SPECIFIC_HEAT;
+  const auto effectiveThermalCapacity =
+      airThermalCapacity + BUILDING_THERMAL_MASS;
 
   // We use a negative sign because losing Joules means the temperature drops
-  const auto deltaTempCelsius =
-      -(totalJoulesLost) / (airMassKg * AIR_SPECIFIC_HEAT);
+  const auto deltaTempCelsius = -(totalJoulesLost) / effectiveThermalCapacity;
 
   _indoorTemp += deltaTempCelsius;
 }
