@@ -45,3 +45,7 @@ obj/
 
 libtorch/
 *.zip
+
+# Datasets
+data/data_home_*
+data/home_*
