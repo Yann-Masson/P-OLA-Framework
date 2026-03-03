@@ -3,6 +3,7 @@
 add_library(pola_services
     Clock.cpp
     ConsumptionService.cpp
+    UserComfortService.cpp
     Inputs/EnergyPriceService.cpp
     Inputs/GPSService.cpp
     Inputs/UserPreferenceService.cpp
