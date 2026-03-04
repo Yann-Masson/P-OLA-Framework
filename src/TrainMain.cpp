@@ -31,6 +31,7 @@
 #include <string>
 
 #include "Interfaces/IClock.hpp"
+#include "Interfaces/IAIRecorder.hpp"
 #include "Simulation/ProviderSetup.hpp"
 #include "Simulation/Room/Room.hpp"
 #include "Training/TrainingConfig.hpp"
@@ -155,6 +156,10 @@ int main(const int argc, char *argv[]) {
 
   // Final model export is triggered internally by the PPOTrainingAgent
   std::cout << "\n[TrainMain] Training complete!" << std::endl;
+
+  auto recorder = provider.get<POLA::Interfaces::IAIRecorder>();
+  recorder->writeToCSV("ai_records_training.csv");
+  std::cout << "AI records saved to ai_records_training.csv" << std::endl;
 
   return 0;
 }

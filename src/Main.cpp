@@ -25,6 +25,7 @@
 #include "Interfaces/IConsumptionService.hpp"
 #include "Interfaces/IInputService.hpp"
 #include "Interfaces/ITemperatureFactor.hpp"
+#include "Interfaces/IAIRecorder.hpp"
 
 
 #include "Simulation/Room/Room.hpp"
@@ -96,6 +97,11 @@ int main() {
   auto room = provider.get<Room>();
   std::cout << "Room initialized with temperature: " << room->getTemperature()
             << "°C" << std::endl;
+
+  // ---- Write AI records to CSV ----
+  auto recorder = provider.get<POLA::Interfaces::IAIRecorder>();
+  recorder->writeToCSV("ai_records.csv");
+  std::cout << "AI records saved to ai_records.csv" << std::endl;
 
   return 0;
 }

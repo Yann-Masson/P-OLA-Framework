@@ -20,6 +20,7 @@
 #include "Simulation/DataManager/DataManager.hpp"
 #include "Simulation/Room/Room.hpp"
 #include "Simulation/SmartThermostat/SmartThermostat.hpp"
+#include "Simulation/SmartThermostat/AIRecorder.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
 #include "Simulation/TemperatureFactor/Window.hpp"
@@ -30,6 +31,7 @@
 #include "Interfaces/IAIModel.hpp"
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/IEnvironmentControl.hpp"
+#include "Interfaces/IAIRecorder.hpp"
 
 #include "Services/TrainingClock.hpp"
 #include "Training/PPOTrainingAgent.hpp"
@@ -255,6 +257,11 @@ Provider SimulationBuilder::build()
     std::cout << "[SimulationBuilder] AI model registered: "
         << (_hasTrainingAgent ? "N/A (training agent handles this)" : (_useRuleBased ? "RuleBasedModel" : "AIModel from " + _modelPath))
         << std::endl;
+
+    // --- AI Recorder ---
+    builder.addService<POLA::Interfaces::IAIRecorder, Simulation::AIRecorder>();
+
+    std::cout << "[SimulationBuilder] AIRecorder service registered" << std::endl;
 
     // --- SmartThermostat ---
     builder.addService<ISmartThermostat, SmartThermostat>();

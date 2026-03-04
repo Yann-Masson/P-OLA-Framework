@@ -8,6 +8,8 @@
 #include <iostream>
 
 #include "Simulation/Room/Room.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Interfaces/IAIRecorder.hpp"
 
 using namespace POLA::Training;
 using namespace POLA::Common;
@@ -83,6 +85,10 @@ double PPOTrainingAgent::predict(const AIState& currentState)
         // We know the old state, the old action, and the resulting new state.
         const double reward =
             _rewardFn.compute(_prevState.value(), powerW, currentState);
+        double timestamp = _provider.get<IClock>()->getElapsedTimeSinceStart();
+        double actualPower = std::clamp(powerW, 0.0, 1.0);
+        const auto recorder = _provider.get<IAIRecorder>();
+        recorder->record(timestamp, _prevState.value(), powerW, actualPower, reward);
 
         // Store the transition
         _prevTransition->reward = static_cast<float>(reward);
