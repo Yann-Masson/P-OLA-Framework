@@ -19,10 +19,9 @@
 #include <string>
 #include <vector>
 
+#include "Interfaces/IEnvironmentControl.hpp"
 #include "Room/Room.hpp"
 #include "Training/TrainingConfig.hpp"
-#include "Interfaces/IEnvironmentControl.hpp"
-
 
 namespace POLA::Common {
 
@@ -77,6 +76,11 @@ public:
   /// Use the Reinforcement Learning PPO Agent for training!
   SimulationBuilder &useTrainingAgent(const Training::TrainingConfig &config);
 
+  /// Use the GPS-free PPO Agent for ablation training (no gpsDistance /
+  /// userVelocity).
+  SimulationBuilder &
+  useTrainingAgentNoGPS(const Training::TrainingConfig &config);
+
   /// Build the provider with all registered components.
   forge::Provider build();
 
@@ -91,6 +95,9 @@ private:
   /// True if the user called .useTrainingAgent() — means the IAIModel was
   /// already pushed into _registrations.
   bool _hasTrainingAgent = false;
+
+  /// True if the user called .useTrainingAgentNoGPS().
+  bool _hasTrainingAgentNoGPS = false;
 
   // Deferred registrations stored as lambdas applied to the ProviderBuilder
   std::vector<std::function<void(forge::ProviderBuilder &)>> _registrations;

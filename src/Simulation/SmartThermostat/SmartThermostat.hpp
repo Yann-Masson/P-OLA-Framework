@@ -18,7 +18,7 @@ public:
   explicit SmartThermostat(const forge::ProviderRef &provider);
 
   void simulate(double currentTemp) override;
-  void reset();
+  void reset() override;
 
 private:
   double decide(double currentTemp);

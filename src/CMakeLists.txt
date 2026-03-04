@@ -45,9 +45,28 @@ target_link_libraries(P-OLA_Trainer
         ${TORCH_LIBRARIES}
 )
 
+# ---- No-GPS Training executable ----
+add_executable(P-OLA_Trainer_NoGPS TrainMainNoGPS.cpp)
+
+target_include_directories(P-OLA_Trainer_NoGPS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_compile_features(P-OLA_Trainer_NoGPS PRIVATE cxx_std_23)
+
+target_link_libraries(P-OLA_Trainer_NoGPS
+    PRIVATE
+        pola_common
+        pola_interfaces
+        pola_models
+        pola_services
+        pola_simulation
+        pola_training
+        forge
+        ${TORCH_LIBRARIES}
+)
+
 # Required for Windows to find the LibTorch DLLs at runtime
 if(MSVC)
     configure_windows_torch_runtime(${PROJECT_NAME})
     configure_windows_torch_runtime(P-OLA_Trainer)
+    configure_windows_torch_runtime(P-OLA_Trainer_NoGPS)
 endif()
-

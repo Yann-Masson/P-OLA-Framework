@@ -9,7 +9,7 @@
 
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/ITemperatureFactor.hpp"
-#include "Simulation/SmartThermostat/SmartThermostat.hpp"
+#include "Interfaces/ISmartThermostat.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
 
@@ -61,7 +61,7 @@ void Room::reset(const double temperature)
 {
     setTemperature(temperature);
 
-    _provider.get<SmartThermostat>()->reset();
+    _provider.get<ISmartThermostat>()->reset();
     _provider.get<TemperatureFactor::Heater>()->reset();
 }
 
@@ -71,7 +71,8 @@ void Room::simulate()
     const auto deltaTimeSeconds = clock->getElapsedTime();
 
     // Let the thermostat make heating decisions before we calculate physics
-    const auto thermostat = _provider.get<SmartThermostat>();
+    const auto thermostat = _provider.get<ISmartThermostat>();
+
     thermostat->simulate(_indoorTemp);
 
     const auto factors = _provider.getAll<ITemperatureFactor>();

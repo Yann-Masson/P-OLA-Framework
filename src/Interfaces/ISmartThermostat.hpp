@@ -11,6 +11,7 @@ class ISmartThermostat {
 public:
     virtual ~ISmartThermostat() = default;
     virtual void simulate(double currentTemp) = 0;
+    virtual void reset() = 0;
 };
 
 } // namespace POLA::Interfaces
