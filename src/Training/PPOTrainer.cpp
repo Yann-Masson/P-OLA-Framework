@@ -36,11 +36,8 @@ void PPOTrainer::RolloutData::clear()
 PPOTrainer::PPOTrainer(
     forge::ProviderRef provider,
     const TrainingConfig &config,
-    const uint32_t seed
-)
-    : _config(config)
-    , _env(provider, config, seed)
-    , _rewardFn(provider, config)
+    const uint32_t seed)
+    : _config(config), _env(provider, config, seed), _rewardFn(provider, config)
 {
     // Select compute device
     if (torch::cuda::is_available())
@@ -78,6 +75,8 @@ torch::Tensor PPOTrainer::normalizeState(const AIState &state) const
                                  static_cast<float>(StateNorm::normalize(state.userVelocity, StateNorm::vel_offset, StateNorm::vel_scale)),
                                  static_cast<float>(StateNorm::normalize(state.targetTemp, StateNorm::target_offset, StateNorm::target_scale))},
                                 torch::TensorOptions().dtype(torch::kFloat32).device(_device));
+
+    tensor = torch::clamp(tensor, -2.0f, 2.0f);
 
     return tensor.unsqueeze(0); // [1, 6]
 }
@@ -177,6 +176,10 @@ void PPOTrainer::update()
     // Normalize advantages (standard practice — stabilizes training)
     advantagesTensor = (advantagesTensor - advantagesTensor.mean()) / (advantagesTensor.std() + 1e-8);
 
+    // Track loss components for logging
+    double totalPolicyLoss = 0.0, totalValueLoss = 0.0, totalEntropyLoss = 0.0;
+    int updateCount = 0;
+
     // ---- PPO clipped update for K epochs ----
     for (int epoch = 0; epoch < _config.numEpochs; ++epoch)
     {
@@ -220,6 +223,12 @@ void PPOTrainer::update()
             // ---- Total Loss ----
             auto totalLoss = policyLoss + _config.valueCoeff * valueLoss + _config.entropyCoeff * entropyLoss;
 
+            // Track losses
+            totalPolicyLoss += policyLoss.item<double>();
+            totalValueLoss += valueLoss.item<double>();
+            totalEntropyLoss += entropyLoss.item<double>();
+            updateCount++;
+
             // ---- Optimize ----
             _optimizer->zero_grad();
             totalLoss.backward();
@@ -230,6 +239,15 @@ void PPOTrainer::update()
 
             _optimizer->step();
         }
+    }
+
+    // Log loss statistics
+    if (_numRollouts % _config.logInterval == 0 && updateCount > 0)
+    {
+        std::cout << "[PPO] Loss Stats | Policy: " << (totalPolicyLoss / updateCount)
+                  << " | Value: " << (totalValueLoss / updateCount)
+                  << " | Entropy: " << (totalEntropyLoss / updateCount)
+                  << std::endl;
     }
 }
 
@@ -250,8 +268,7 @@ void PPOTrainer::train()
               << "  Learning rate:    " << _config.learningRate << "\n"
               << "  Hidden dim:       " << _config.hiddenDim << "\n"
               << "  Reward weights:   comfort=" << _config.wComfort
-              << "  economy=" << _config.wEconomy
-              << "  gps=" << _config.wGps << "\n"
+              << "  economy=" << _config.wEconomy << "\n"
               << "  Device:           " << _device << "\n"
               << "==============================================" << "\n"
               << std::endl;
@@ -270,16 +287,24 @@ void PPOTrainer::train()
         if (_numRollouts % _config.logInterval == 0)
         {
             double totalReward = 0.0;
+            double minReward = 1e10;
+            double maxReward = -1e10;
             for (int i = 0; i < _config.rolloutSteps; ++i)
             {
                 totalReward += _rollout.rewards[i];
+                minReward = std::min(minReward, (double)_rollout.rewards[i]);
+                maxReward = std::max(maxReward, (double)_rollout.rewards[i]);
             }
             const double avgReward = totalReward / _config.rolloutSteps;
+            const double stdReward = (maxReward - minReward) / 4.0; // Rough std estimate
 
             std::cout << "[PPO] Rollout " << _numRollouts
                       << " | Steps: " << _totalSteps
                       << "/" << _config.totalTimesteps
                       << " | Avg Reward: " << avgReward
+                      << " | Min: " << minReward
+                      << " | Max: " << maxReward
+                      << " | Spread: " << stdReward
                       << std::endl;
 
             if (avgReward > _bestAvgReward)

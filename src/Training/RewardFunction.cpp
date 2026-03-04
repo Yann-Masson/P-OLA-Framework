@@ -14,24 +14,23 @@
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/IInputService.hpp"
 
-
 using namespace POLA::Training;
 using namespace POLA::Interfaces;
 
-RewardFunction::RewardFunction(const forge::ProviderRef& provider,
-                               const TrainingConfig& config)
+RewardFunction::RewardFunction(const forge::ProviderRef &provider,
+                               const TrainingConfig &config)
     : _provider(provider), _wComfort(config.wComfort),
-      _wEconomy(config.wEconomy), _wGps(config.wGps)
+      _wEconomy(config.wEconomy), _wGps(0.0)
 {
     std::cout << "[RewardFunction] Initialized with weights:\n"
-        << "  Comfort: " << _wComfort << "\n"
-        << "  Economy: " << _wEconomy << "\n"
-        << "  GPS:     " << _wGps << std::endl;
+              << "  Comfort: " << _wComfort << "\n"
+              << "  Economy: " << _wEconomy << "\n"
+              << "  GPS:     " << _wGps << std::endl;
 }
 
-double RewardFunction::compute(const Common::AIState& state,
+double RewardFunction::compute(const Common::AIState &state,
                                const double heaterPower,
-                               const Common::AIState& nextState) const
+                               const Common::AIState &nextState) const
 {
     // ---- 2. Economy Penalty (Price × Action Coupling) ----
     // The agent is penalized proportionally to the electricity price and
@@ -46,26 +45,16 @@ double RewardFunction::compute(const Common::AIState& state,
     const auto comfortService = _provider.get<IUserComfortService>();
     const auto userComfort = comfortService->recordComfort(state.tempIn);
     const auto comfortPenalty = std::abs(userComfort - 100.0); // 0 comfort → 100 penalty, 100 comfort → 0 penalty
-    
+
     // Harsh penalty for dangerous overheating
     double overheatPenalty = 0.0;
     if (nextState.tempIn > 33.0)
     {
         double excess = nextState.tempIn - 33.0;
-        overheatPenalty = 10000 * excess * excess;
+        overheatPenalty = 10.0 * excess * excess; // ← Réduit de 10000 à 10
     }
 
     auto reward = -(_wComfort * comfortPenalty + _wEconomy * economyPenalty + overheatPenalty);
-
-    if (reward == 0.0) {
-        const auto totalTime = _provider.get<IClock>()->getElapsedTimeSinceStart();
-        const auto gpsData = _provider.get<IInputService<Common::GPSData>>()->getInput();
-        std::cout << "[RewardFunction] Perfect step! Time: " << totalTime
-            << "s | GPS distance: " << gpsData.distanceKm
-            << "km | Comfort: " << userComfort
-            << " | Economy penalty: " << economyPenalty
-            << std::endl;
-    }
 
     return reward;
 }
