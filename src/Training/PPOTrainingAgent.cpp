@@ -7,9 +7,10 @@
 #include <algorithm>
 #include <iostream>
 
-#include "Simulation/Room/Room.hpp"
-#include "Interfaces/IClock.hpp"
 #include "Interfaces/IAIRecorder.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Simulation/Room/Room.hpp"
+
 
 using namespace POLA::Training;
 using namespace POLA::Common;
@@ -83,8 +84,7 @@ double PPOTrainingAgent::predict(const AIState& currentState)
 
         // At this point in the simulator code, a step has occurred.
         // We know the old state, the old action, and the resulting new state.
-        const double reward =
-            _rewardFn.compute(_prevState.value(), powerW, currentState);
+        const double reward = _rewardFn.compute(_prevState.value(), powerW, currentState);
         double timestamp = _provider.get<IClock>()->getElapsedTimeSinceStart();
         double actualPower = std::clamp(powerW, 0.0, 1.0);
         const auto recorder = _provider.get<IAIRecorder>();
@@ -103,15 +103,7 @@ double PPOTrainingAgent::predict(const AIState& currentState)
             _rollout.clear();
 
             const auto room = _provider.get<Simulation::Room>();
-            room->setTemperature(
-                20.0); // Reset room temp to a default value (or randomize)
-
-            // Randomize environment for next episode!
-            // if (_envControl)
-            // {
-            // TODO: Implement environment randomization logic here (e.g., randomize
-            // starting room temp) _envControl->resetEnvironment();
-            // }
+            room->reset(); // Reset room temperature and all components for the next episode
         }
     }
 

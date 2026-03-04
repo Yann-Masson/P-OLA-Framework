@@ -22,6 +22,9 @@ public:
                   double maxPowerW = 2000.0);
   double simulate(double insideTemperature) override;
 
+  /// Reset heater state (power off) for a new training episode.
+  void reset();
+
   /// Set heater power level (0.0 = off, 1.0 = full power).
   void setPower(double power);
 

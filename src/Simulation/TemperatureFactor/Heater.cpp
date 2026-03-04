@@ -27,11 +27,16 @@ Heater::Heater(const forge::ProviderRef &provider, const double maxPowerW)
     : ATemperatureFactor(provider), _maxPowerW(maxPowerW) {}
 
 double Heater::simulate(const double insideTemperature) {
-  const double heatOutputW = _power * _maxPowerW;
+  double currentPower = _power;
+  if (insideTemperature >= 35.0) {
+    currentPower = 0.0;
+  }
+
+  const double heatOutputW = currentPower * _maxPowerW;
 
   // Record energy consumption: convert Watts over elapsed seconds to kWh
   const auto clock = _provider.get<IClock>();
-  const double dtSeconds = static_cast<double>(clock->getElapsedTime());
+  const double dtSeconds = clock->getElapsedTime();
   const double energyKWh = (heatOutputW * dtSeconds) / 3'600'000.0;
   _provider.get<IConsumptionService>()->recordEnergy(energyKWh);
 
@@ -45,3 +50,5 @@ void Heater::setPower(const double power) {
 }
 
 double Heater::getPower() const { return _power; }
+
+void Heater::reset() { _power = 0.0; }

@@ -51,3 +51,6 @@ libtorch/
 data/data_home_*
 data/home_*
 data/*.csv
+
+*.csv
+.venv/
