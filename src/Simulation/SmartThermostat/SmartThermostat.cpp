@@ -44,13 +44,16 @@ double SmartThermostat::decide(const double currentTemp) {
   const auto userPref =
       _provider.get<IInputService<UserPreferenceData>>()->getInput();
   const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
+  const auto userSchedule =
+      _provider.get<IInputService<UserScheduleData>>()->getInput();
 
-  AIState state{currentTemp,
-                weather.forecast[0].outdoorTemp,
-                energyPrice.pricesPerKwh[0],
-                gps.distanceKm,
-                gps.velocityKmMin,
-                (userPref.minTemperature + userPref.maxTemperature) / 2.0};
+  AIState state{/* tempIn           */ currentTemp,
+                /* electricityPrice */ energyPrice.pricesPerKwh[0],
+                /* userDistanceKm   */ gps.distanceKm,
+                /* userVelocityKmMin*/ gps.velocityKmMin,
+                /* weather          */ weather,
+                /* userPreferences  */ userPref,
+                /* userSchedule     */ userSchedule};
 
   const auto aiModel = _provider.get<IAIModel>();
   return aiModel->predict(state);

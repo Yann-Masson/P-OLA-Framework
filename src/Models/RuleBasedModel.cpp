@@ -13,7 +13,9 @@ double RuleBasedModel::predict(const Common::AIState& state)
 {
     // --- 1. Compute temperature error ---
     // Positive error means it's too cold (need more heat)
-    const auto targetTemp = 21.0;
+    const double targetTemp = (state.userPreferences.minTemperature +
+            state.userPreferences.maxTemperature) /
+        2.0;
     double tempError = targetTemp - state.tempIn;
 
     // --- 2. Base power from temperature error ---
@@ -24,9 +26,10 @@ double RuleBasedModel::predict(const Common::AIState& state)
     // --- 3. Outdoor temperature feed-forward ---
     // Colder outside → more heat loss → boost power slightly
     double outdoorBoost = 0.0;
-    if (state.tempOut < 0.0)
+    const auto currentWeather = state.weather.forecast[0]; // Use current hour's weather
+    if (currentWeather.outdoorTemp < 0.0)
     {
-        outdoorBoost = std::clamp(-state.tempOut / 40.0, 0.0, 0.2); // up to +0.2
+        outdoorBoost = std::clamp(-currentWeather.outdoorTemp / 40.0, 0.0, 0.2); // up to +0.2
     }
 
     // --- 4. Electricity price penalty ---
@@ -42,22 +45,25 @@ double RuleBasedModel::predict(const Common::AIState& state)
     // Far from destination → no need to pre-heat aggressively
     // Close to destination → comfort matters more
     double distanceFactor = 0.0;
-    if (state.gpsDistance > 10.0)
+    if (state.userDistanceKm > 10.0)
     {
-        distanceFactor = -std::clamp((state.gpsDistance - 10.0) / 50.0, 0.0, 0.2);
+        distanceFactor =
+            -std::clamp((state.userDistanceKm - 10.0) / 50.0, 0.0, 0.2);
     }
 
     // --- 6. Velocity factor ---
     // At high speed, cabin heat loss increases (wind chill effect on body)
-    // Boost heating slightly at highway speeds
+    // Boost heating slightly at highway speeds (>1.33 km/min ≈ 80 km/h)
     double velocityBoost = 0.0;
-    if (state.userVelocity > 80.0)
+    if (state.userVelocityKmMin > 1.33)
     {
-        velocityBoost = std::clamp((state.userVelocity - 80.0) / 120.0, 0.0, 0.1);
+        velocityBoost =
+            std::clamp((state.userVelocityKmMin - 1.33) / 2.0, 0.0, 0.1);
     }
 
     // --- 7. Combine all factors ---
-    const double power = basePower + outdoorBoost - pricePenalty + distanceFactor + velocityBoost;
+    const double power =
+        basePower + outdoorBoost - pricePenalty + distanceFactor + velocityBoost;
 
     return std::clamp(power, 0.0, 1.0);
 }

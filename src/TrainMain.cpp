@@ -93,7 +93,6 @@ int main(const int argc, char *argv[])
              "3e-4)\n"
           << "  --w-comfort W       Comfort penalty weight     (default: 0.5)\n"
           << "  --w-economy W       Economy penalty weight     (default: 0.3)\n"
-          << "  --w-gps W           GPS arrival penalty weight (default: 0.2)\n"
           << "  --hidden-dim N      Hidden layer size          (default: 64)\n"
           << "  --rollout-steps N   Steps per rollout          (default: "
              "2048)\n"
