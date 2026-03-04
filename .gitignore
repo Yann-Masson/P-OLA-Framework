@@ -8,6 +8,7 @@
 *.dylib
 *.dll
 *.pt
+*.ckpt
 
 # Compiled Static libraries
 *.a

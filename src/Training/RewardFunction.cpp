@@ -17,8 +17,8 @@
 using namespace POLA::Training;
 using namespace POLA::Interfaces;
 
-RewardFunction::RewardFunction(const forge::ProviderRef &provider,
-                               const TrainingConfig &config)
+RewardFunction::RewardFunction(const forge::ProviderRef& provider,
+                               const TrainingConfig& config)
     : _provider(provider), _wComfort(config.wComfort),
       _wEconomy(config.wEconomy)
 {
@@ -27,9 +27,9 @@ RewardFunction::RewardFunction(const forge::ProviderRef &provider,
         << "  Economy: " << _wEconomy << std::endl;
 }
 
-double RewardFunction::compute(const Common::AIState &state,
+double RewardFunction::compute(const Common::AIState& state,
                                const double heaterPower,
-                               const Common::AIState &nextState) const
+                               const Common::AIState& nextState) const
 {
     // ---- 2. Economy Penalty (Price × Action Coupling) ----
     // The agent is penalized proportionally to the electricity price and
