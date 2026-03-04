@@ -20,12 +20,11 @@ using namespace POLA::Interfaces;
 RewardFunction::RewardFunction(const forge::ProviderRef &provider,
                                const TrainingConfig &config)
     : _provider(provider), _wComfort(config.wComfort),
-      _wEconomy(config.wEconomy), _wGps(0.0)
+      _wEconomy(config.wEconomy)
 {
     std::cout << "[RewardFunction] Initialized with weights:\n"
-              << "  Comfort: " << _wComfort << "\n"
-              << "  Economy: " << _wEconomy << "\n"
-              << "  GPS:     " << _wGps << std::endl;
+        << "  Comfort: " << _wComfort << "\n"
+        << "  Economy: " << _wEconomy << std::endl;
 }
 
 double RewardFunction::compute(const Common::AIState &state,

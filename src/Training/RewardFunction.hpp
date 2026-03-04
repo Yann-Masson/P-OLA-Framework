@@ -61,7 +61,6 @@ namespace POLA::Training
     private:
         double _wComfort;
         double _wEconomy;
-        double _wGps;
         forge::ProviderRef _provider;
     };
 } // namespace POLA::Training
