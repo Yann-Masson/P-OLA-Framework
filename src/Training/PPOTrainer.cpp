@@ -250,8 +250,7 @@ void PPOTrainer::train()
               << "  Learning rate:    " << _config.learningRate << "\n"
               << "  Hidden dim:       " << _config.hiddenDim << "\n"
               << "  Reward weights:   comfort=" << _config.wComfort
-              << "  economy=" << _config.wEconomy
-              << "  gps=" << _config.wGps << "\n"
+              << "  economy=" << _config.wEconomy << "\n"
               << "  Device:           " << _device << "\n"
               << "==============================================" << "\n"
               << std::endl;

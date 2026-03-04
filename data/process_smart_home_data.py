@@ -15,6 +15,24 @@ def split_and_clean_dataset(input_file='smartHomeEnergyManagement.csv'):
     # 1. Loading the large file
     df = pd.read_csv(input_file, sep=',')
     
+    print("Filtering data for cold season (mid-November to mid-March)...")
+    df['parsed_time'] = pd.to_datetime(df['timestamp'])
+    mask = (
+        ((df['parsed_time'].dt.month == 11) & (df['parsed_time'].dt.day >= 15)) |
+        (df['parsed_time'].dt.month.isin([12, 1, 2])) |
+        ((df['parsed_time'].dt.month == 3) & (df['parsed_time'].dt.day <= 15))
+    )
+    df = df[mask].copy()
+    # Assign a "winter season year": Nov/Dec belong to the season that ends next year,
+    # so we shift them back so Nov/Dec of year Y sort before Jan/Feb/Mar of year Y+1.
+    # e.g. Nov/Dec 2022 -> season_year=2022, Jan/Feb/Mar 2023 -> season_year=2022
+    df['winter_season_year'] = df['parsed_time'].dt.year
+    is_late_year = df['parsed_time'].dt.month >= 11
+    df.loc[is_late_year, 'winter_season_year'] = df.loc[is_late_year, 'parsed_time'].dt.year
+    df.loc[~is_late_year, 'winter_season_year'] = df.loc[~is_late_year, 'parsed_time'].dt.year - 1
+    df = df.sort_values(['winter_season_year', 'parsed_time']).drop(columns=['parsed_time', 'winter_season_year'])
+    print(f"Data filtered and sorted: {len(df)} rows remaining for cold season (Nov→Mar order).")
+    
     # 2. Get the list of all unique home_id
     unique_homes = df['home_id'].unique()
     
