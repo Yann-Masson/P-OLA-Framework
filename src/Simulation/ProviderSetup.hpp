@@ -49,10 +49,7 @@ class SimulationBuilder {
 public:
   /// Set the simulation clock time scale (e.g., 900 = 1 real second = 15
   /// minutes).
-  SimulationBuilder &setClock(double timeScale);
-
-  /// Use a deterministic training clock with a fixed time step (seconds/step).
-  SimulationBuilder &useTrainingClock(double fixedDtSeconds = 60.0);
+  SimulationBuilder &setClock(double fixedDtSeconds = 60.0);
 
   /// Set the data source CSV file path for input services.
   SimulationBuilder &setDataSource(const std::string &csvPath);
@@ -84,8 +81,7 @@ public:
   forge::Provider build();
 
 private:
-  double _timeScale = 900.0;
-  double _trainingClockDt = 0.0; ///< If > 0, use TrainingClock instead
+  double _clockDt = 60.0;
   std::string _dataCsvPath;
   double _startingRoomTemp = 20.0;
   bool _hasRoom = false;

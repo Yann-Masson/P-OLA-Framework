@@ -50,7 +50,7 @@ double RewardFunction::compute(const Common::AIState &state,
     if (nextState.tempIn > 33.0)
     {
         double excess = nextState.tempIn - 33.0;
-        overheatPenalty = 10.0 * excess * excess; // ← Réduit de 10000 à 10
+        overheatPenalty = 100.0 * excess * excess;
     }
 
     auto reward = -(_wComfort * comfortPenalty + _wEconomy * economyPenalty + overheatPenalty);

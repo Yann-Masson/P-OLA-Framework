@@ -123,7 +123,7 @@ int main(const int argc, char* argv[])
     // ---- Build the training environment using the same Lego bricks ----
     auto provider =
         SimulationBuilder()
-        .useTrainingClock(60.0) // Fixed 60s per step (deterministic)
+        .setClock(60.0) // Fixed 60s per step
         .setDataSource(dataCsvPath)
         .setRoom(20.0)
         // Same room layout as the real simulator

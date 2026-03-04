@@ -107,7 +107,7 @@ double PPOTrainingAgent::predict(const AIState& currentState)
             const auto room = _provider.get<Simulation::Room>();
             const auto userPrefService = _provider.get<IInputService<UserPreferenceData>>();
             const auto userPref = userPrefService->getInput();
-            room->reset(userPref.minTemperature + userPref.maxTemperature / 2.0); // Reset room temperature and all components for the next episode
+            room->reset((userPref.minTemperature + userPref.maxTemperature) / 2.0); // Reset room temperature and all components for the next episode
         }
     }
 

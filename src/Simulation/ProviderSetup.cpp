@@ -33,7 +33,7 @@
 #include "Interfaces/IEnvironmentControl.hpp"
 #include "Interfaces/IAIRecorder.hpp"
 
-#include "Services/TrainingClock.hpp"
+#include "Services/Clock.hpp"
 #include "Training/PPOTrainingAgent.hpp"
 
 #include <random>
@@ -51,16 +51,9 @@ using namespace POLA::Common;
 // SimulationBuilder
 // ============================================================================
 
-SimulationBuilder& SimulationBuilder::setClock(const double timeScale)
+SimulationBuilder& SimulationBuilder::setClock(const double fixedDtSeconds)
 {
-    _timeScale = timeScale;
-    return *this;
-}
-
-SimulationBuilder&
-SimulationBuilder::useTrainingClock(const double fixedDtSeconds)
-{
-    _trainingClockDt = fixedDtSeconds;
+    _clockDt = fixedDtSeconds;
     return *this;
 }
 
@@ -168,9 +161,7 @@ Provider SimulationBuilder::build()
     namespace fs = std::filesystem;
 
     std::cout << "[SimulationBuilder] Building provider with configuration:\n"
-        << "  Time scale:       " << _timeScale << " (1 real second = "
-        << _timeScale / 60.0 << " simulated minutes)\n"
-        << "  Training clock dt: " << (_trainingClockDt > 0.0 ? std::to_string(_trainingClockDt) + "s" : "N/A") << "\n"
+        << "  Clock dt: " << (_clockDt > 0.0 ? std::to_string(_clockDt) + "s" : "N/A") << "\n"
         << "  Data CSV path:    " << (_dataCsvPath.empty() ? "Default dataset" : _dataCsvPath) << "\n"
         << "  Model path:       " << (_modelPath.empty() ? (_useRuleBased ? "Using rule-based model" : "No model specified") : _modelPath) << "\n"
         << "  Starting room temp: " << (_hasRoom ? std::to_string(_startingRoomTemp) + "C" : "N/A") << "\n"
@@ -179,17 +170,7 @@ Provider SimulationBuilder::build()
         << std::endl;
 
     // --- Clock ---
-    std::shared_ptr<IClock> clockService;
-    if (_trainingClockDt > 0.0)
-    {
-        std::cout << "[SimulationBuilder] Using TrainingClock with fixed dt="
-            << _trainingClockDt << "s" << std::endl;
-        clockService = std::make_shared<TrainingClock>(_trainingClockDt);
-    }
-    else
-    {
-        clockService = std::make_shared<Clock>(_timeScale);
-    }
+    std::shared_ptr<IClock> clockService = std::make_shared<Clock>(_clockDt);
 
     // --- Data source ---
     std::string dataPath = _dataCsvPath;

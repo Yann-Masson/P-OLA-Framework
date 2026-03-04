@@ -26,6 +26,7 @@
 #include "Interfaces/IInputService.hpp"
 #include "Interfaces/ITemperatureFactor.hpp"
 #include "Interfaces/IAIRecorder.hpp"
+#include "Interfaces/IUserComfortService.hpp"
 
 
 #include "Simulation/Room/Room.hpp"
@@ -44,7 +45,7 @@ int main()
     std::cout << "Initializing simulation provider..." << std::endl;
 
     auto provider = SimulationBuilder()
-                    .setClock(900.0) // 1 real second = 15 simulated minutes
+                    .setClock(60.0) // Fixed 60s per step
                     .setDataSource(dataCsvPath)
                     .setRoom(20.0) // Start at 20°C
                     // Rectangular room: 4 walls
@@ -65,23 +66,20 @@ int main()
 
     const auto room = provider.get<Room>();
     const auto clock = provider.get<IClock>();
+    const auto userComfortService = provider.get<IUserComfortService>();
 
     for (int step = 0; step < 1000000; ++step)
     {
         clock->simulate(); // Advance time
         room->simulate(); // Simulate room: calls thermostat, which calls predict()
+        userComfortService->recordComfort(room->getTemperature());
 
-        std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
-            << "C | Step: " << step + 1 << "/" << 1000000
-            << std::flush;
+        // std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
+        //     << "C | Step: " << step + 1 << "/" << 1000000
+        //     << std::flush;
     }
 
-    std::cout << "\n[TrainMain] Training complete!" << std::endl;
-
-    // ---- Write AI records to CSV ----
-    auto recorder = provider.get<POLA::Interfaces::IAIRecorder>();
-    recorder->writeToCSV("ai_records.csv");
-    std::cout << "AI records saved to ai_records.csv" << std::endl;
+    std::cout << "\n[Main] Simulation complete!" << std::endl;
 
     return 0;
 }
