@@ -8,8 +8,8 @@ using namespace POLA::Services;
 using namespace POLA::Interfaces;
 using namespace POLA::Common;
 
-UserComfortService::UserComfortService(const forge::ProviderRef& provider):
-	_provider(provider)
+UserComfortService::UserComfortService(const forge::ProviderRef& provider)
+    : _provider(provider)
 {
 }
 

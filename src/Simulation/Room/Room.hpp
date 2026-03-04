@@ -24,8 +24,16 @@ public:
   void setTemperature(double temperature);
   void simulate();
 
+  /**
+   * @brief Reset the room and all its components to a clean initial state.
+   * @param temperature The temperature to reset to (defaults to the starting
+   * temperature).
+   */
+  void reset(double temperature = -1.0);
+
 private:
   double _indoorTemp;
+  double _startingTemperature;
   forge::ProviderRef _provider;
   double _volume;
 };

@@ -64,7 +64,7 @@ struct TrainingConfig {
   int totalTimesteps = 1000000; ///< Total environment steps for full training
 
   // ---- Reward Function Weights (Scientific Hyperparameters) ----
-  double wComfort = 0.5; ///< Comfort penalty weight (quadratic temp error)
+  double wComfort = 3.5; ///< Comfort penalty weight (quadratic temp error)
   double wEconomy = 0.3; ///< Economy penalty weight (price × power coupling)
   double wGps = 0.2;     ///< GPS arrival penalty weight (temporal deadline)
 
@@ -80,7 +80,7 @@ struct TrainingConfig {
   // ---- Output / Logging ----
   std::string modelSavePath = "models/ai_model.pt";
   int logInterval = 10;  ///< Rollouts between console log messages
-  int saveInterval = 50; ///< Rollouts between model checkpoint saves
+  int saveInterval = 10; ///< Rollouts between model checkpoint saves
 };
 
 } // namespace POLA::Training
