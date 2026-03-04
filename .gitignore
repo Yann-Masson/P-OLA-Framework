@@ -50,3 +50,4 @@ libtorch/
 # Datasets
 data/data_home_*
 data/home_*
+data/*.csv

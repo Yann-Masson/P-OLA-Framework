@@ -10,6 +10,7 @@
 
 #include "Services/Clock.hpp"
 #include "Services/ConsumptionService.hpp"
+#include "Services/UserComfortService.hpp"
 #include "Services/Inputs/EnergyPriceService.hpp"
 #include "Services/Inputs/GPSService.hpp"
 #include "Services/Inputs/UserPreferenceService.hpp"
@@ -213,9 +214,10 @@ Provider SimulationBuilder::build()
         .addService<IInputService<UserPreferenceData>,
                     UserPreferenceService>()
         .addService<IInputService<UserScheduleData>, UserScheduleService>()
-        .addService<IConsumptionService, ConsumptionService>();
+        .addService<IConsumptionService, ConsumptionService>()
+        .addService<IUserComfortService, UserComfortService>();
 
-    std::cout << "[SimulationBuilder] Core services registered: Clock, EnergyPriceService, WeatherService, GPSService, UserPreferenceService, UserScheduleService, ConsumptionService"
+    std::cout << "[SimulationBuilder] Core services registered: Clock, EnergyPriceService, WeatherService, GPSService, UserPreferenceService, UserScheduleService, ConsumptionService, UserComfortService"
         << std::endl;
 
     // --- Temperature factors (Lego bricks) ---
