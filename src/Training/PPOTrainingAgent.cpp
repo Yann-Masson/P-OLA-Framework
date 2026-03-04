@@ -148,6 +148,15 @@ double PPOTrainingAgent::predict(const AIState& currentState)
         if (_rollout.size() == _config.rolloutSteps)
         {
             _rollout.back().done = true; // Mark episode as done
+
+            // Compute episode average temperature before the rollout is cleared
+            double totalEpTemp = 0.0;
+            for (const auto& t : _rollout)
+            {
+                totalEpTemp += t.roomTemperature;
+            }
+            const double avgEpTemp = totalEpTemp / static_cast<double>(_rollout.size());
+
             updatePPO(stateTensor); // Train the network!
 
             _rollout.clear();
@@ -156,10 +165,9 @@ double PPOTrainingAgent::predict(const AIState& currentState)
             const auto userPrefService =
                 _provider.get<IInputService<UserPreferenceData>>();
             const auto userPref = userPrefService->getInput();
-            room->reset((userPref.minTemperature + userPref.maxTemperature) /
-                2.0); // Reset room temperature and all components for the
-            // next episode
-            std::cout << "Room has been reset for the next episode." << std::endl;
+            room->reset((userPref.minTemperature + userPref.maxTemperature) / 2.0);
+            std::cout << "Room reset for next episode | Avg Temp this episode: "
+                << avgEpTemp << " °C" << std::endl;
         }
     }
 
@@ -315,13 +323,18 @@ void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
     if (_numRollouts % _config.logInterval == 0)
     {
         double totalReward = 0.0;
-        for (float r : rewards)
-            totalReward += r;
+        double totalTemp = 0.0;
+        for (int i = 0; i < N; ++i)
+        {
+            totalReward += rewards[i];
+            totalTemp += _rollout[i].roomTemperature;
+        }
         const double avgReward = totalReward / N;
+        const double avgTemp = totalTemp / N;
 
         std::cout << "[PPO] Rollout " << _numRollouts << " | Steps: " << _totalSteps
             << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
-            << std::endl;
+            << " | Avg Temp: " << avgTemp << " °C" << std::endl;
 
         if (avgReward > _bestAvgReward)
         {

@@ -159,9 +159,9 @@ int main(const int argc, char *argv[])
     clock->simulate(); // Advance time
     room->simulate();  // Simulate room: calls thermostat, which calls predict()
 
-    std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
-              << "C | Step: " << step + 1 << "/" << config.totalTimesteps
-              << std::flush;
+    // std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
+    //           << "C | Step: " << step + 1 << "/" << config.totalTimesteps
+    //           << std::flush;
   }
 
   std::cout << "\n[TrainMain] Training complete!" << std::endl;
