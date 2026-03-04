@@ -53,6 +53,7 @@ private:
     float actionLogit;
     float logProb;
     float value;
+    float roomTemperature;
     float reward;
     bool done;
   };

@@ -18,8 +18,8 @@ REQUIRED_COLUMNS = [
     "ElectricityPrice",
 ]
 
-MIN_TEMPERATURE = 22.0
-MAX_TEMPERATURE = 28.0
+MIN_TEMPERATURE = 18.0
+MAX_TEMPERATURE = 24.0
 
 
 def parse_args() -> argparse.Namespace:
@@ -89,7 +89,6 @@ def make_plot(data: dict[str, list[float]], output_path: Path | None) -> None:
     axes[1].legend()
 
     axes[2].plot(time_hours, data["Reward"], label="Reward")
-    axes[2].plot(time_hours, data["ElectricityPrice"], label="ElectricityPrice", alpha=0.7)
     axes[2].set_xlabel("Time (hours)")
     axes[2].set_ylabel("Value")
     axes[2].set_title("AIRecord - Reward and Electricity Price")

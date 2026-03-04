@@ -11,7 +11,7 @@ using namespace POLA::Services::Inputs;
 UserPreferenceData UserPreferenceService::getInput()
 {
     return {
-        .minTemperature = 22.0,
-        .maxTemperature = 28.0
+        .minTemperature = 18.0,
+        .maxTemperature = 24.0
     };
 }
