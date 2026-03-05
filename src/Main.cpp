@@ -58,7 +58,8 @@ int main()
                     // 1 heater (2000W)
                     .addHeater(2000.0)
                     // AI model
-                    .useAIModel(modelPath)
+                    // .useAIModel(modelPath)
+                    .useRuleBasedModel()
                     .build();
 
     std::cout << "Simulation provider created successfully" << std::endl;
@@ -68,18 +69,26 @@ int main()
     const auto clock = provider.get<IClock>();
     const auto userComfortService = provider.get<IUserComfortService>();
 
-    for (int step = 0; step < 1000000; ++step)
+    // 10 000 Mean from november to march
+    for (int step = 0; step < 10000; ++step)
     {
-        clock->simulate(); // Advance time
-        room->simulate(); // Simulate room: calls thermostat, which calls predict()
+        clock->simulate();
+        room->simulate();
         userComfortService->recordComfort(room->getTemperature());
 
-        // std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
-        //     << "C | Step: " << step + 1 << "/" << 1000000
-        //     << std::flush;
+        std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
+            << "C | Step: " << step + 1 << "/" << 1000000
+            << std::flush;
     }
 
     std::cout << "\n[Main] Simulation complete!" << std::endl;
+
+    const auto comsumptionService = provider.get<IConsumptionService>();
+
+    std::cout << "Final room temperature: " << room->getTemperature() << " °C" << std::endl;
+    std::cout << "Average user comfort: " << userComfortService->getUserComfort() << "%" << std::endl;
+    std::cout << "Total energy consumed: " << comsumptionService->getTotalEnergyKWh() << " kWh" << std::endl;
+    std::cout << "Total Cost energy: " << comsumptionService->getTotalCost() << " currency units" << std::endl;
 
     return 0;
 }
