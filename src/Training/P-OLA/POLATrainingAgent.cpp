@@ -401,7 +401,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor &finalStateTensor)
     }
 
     // ---- Periodic model checkpointing ----
-    if (_numRollouts % _config.saveInterval == 0)
+    if (_numRollouts % _config.saveInterval == 0 && _config.saveEnabled)
     {
         exportModel();
         std::cout << "[PPO] Checkpoint saved to: " << _config.modelSavePath

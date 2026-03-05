@@ -75,6 +75,8 @@ int main(const int argc, char* argv[])
             dataCsvPath = argv[++i];
         else if (arg == "--output-data" && i + 1 < argc)
             outputDataPath = argv[++i];
+        else if (arg == "--no-save")
+            config.saveEnabled = false;
         else if (arg == "--help")
         {
             std::cout
@@ -100,6 +102,7 @@ int main(const int argc, char* argv[])
                 << "  --data PATH         CSV data file              (default: "
                 "data_home_1_scheduled.csv)\n"
                 << "  --output-data PATH  AI records output CSV file  (default: "
+                << "  --no-save            Disable model checkpointing\n"
                 "ai_records_training.csv)\n"
                 << "  --help              Show this help message\n\n"
                 << "Example:\n"
@@ -168,7 +171,7 @@ int main(const int argc, char* argv[])
     std::cout << "Final room temperature: " << room->getTemperature() << " °C" << std::endl;
     std::cout << "Average user comfort: " << userComfortService->getUserComfort() << "%" << std::endl;
     std::cout << "Total energy consumed: " << consumptionService->getTotalEnergyKWh() << " kWh" << std::endl;
-    std::cout << "Total Cost energy: " << consumptionService->getTotalCost() << " currency units" << std::endl;
+    std::cout << "Total Cost energy: " << consumptionService->getTotalCost() * 0.000033 << " €" << std::endl;
 
     auto recorder = provider.get<IAIRecorder>();
     recorder->writeToCSV(outputDataPath);

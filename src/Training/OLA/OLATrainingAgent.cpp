@@ -385,7 +385,7 @@ void OLATrainingAgent::updatePPO(const torch::Tensor &finalStateTensor)
             _bestAvgReward = avgReward;
     }
 
-    if (_numRollouts % _config.saveInterval == 0)
+    if (_numRollouts % _config.saveInterval == 0 && _config.saveEnabled)
     {
         exportModel();
         std::cout << "[OLA] Checkpoint saved to: " << _config.modelSavePath

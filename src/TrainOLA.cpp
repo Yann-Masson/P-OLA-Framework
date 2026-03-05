@@ -40,7 +40,7 @@ using namespace POLA::Common;
 using namespace POLA::Simulation;
 using namespace POLA::Interfaces;
 
-int main(const int argc, char* argv[])
+int main(const int argc, char *argv[])
 {
     POLA::Training::TrainingConfig config;
     config.modelSavePath = "models/ai_model_no_gps.pt";
@@ -77,41 +77,44 @@ int main(const int argc, char* argv[])
             dataCsvPath = argv[++i];
         else if (arg == "--output-data" && i + 1 < argc)
             outputDataPath = argv[++i];
+        else if (arg == "--no-save")
+            config.saveEnabled = false;
         else if (arg == "--help")
         {
             std::cout
                 << "P-OLA Smart Thermostat - PPO Trainer (No GPS)\n"
                 << "=============================================\n\n"
                 << "Trains a reinforcement learning agent to control heater "
-                "power\n"
+                   "power\n"
                 << "using only thermal and economic signals (no GPS data).\n\n"
                 << "Usage: " << argv[0] << " [options]\n\n"
                 << "Options:\n"
                 << "  --timesteps N       Total training steps       (default: "
-                "1000000)\n"
+                   "1000000)\n"
                 << "  --lr RATE           Learning rate              (default: "
-                "3e-4)\n"
+                   "3e-4)\n"
                 << "  --w-comfort W       Comfort penalty weight     (default: 0.8)\n"
                 << "  --w-economy W       Economy penalty weight     (default: 0.2)\n"
                 << "  --hidden-dim N      Hidden layer size          (default: 64)\n"
                 << "  --rollout-steps N   Steps per rollout          (default: "
-                "2048)\n"
+                   "2048)\n"
                 << "  --epochs N          PPO epochs per update      (default: 4)\n"
                 << "  --output PATH       Model output path          (default: "
-                "models/ai_model_no_gps.pt)\n"
+                   "models/ai_model_no_gps.pt)\n"
                 << "  --data PATH         CSV data file              (default: "
-                "data_home_1_scheduled_GPS.csv)\n"
+                   "data_home_1_scheduled_GPS.csv)\n"
+                << "  --no-save           Disable model checkpointing\n"
                 << "  --help              Show this help message\n\n"
                 << "Example:\n"
                 << "  " << argv[0]
                 << " --timesteps 500000 --w-economy 0.4 --output "
-                "models/eco_no_gps.pt\n";
+                   "models/eco_no_gps.pt\n";
             return 0;
         }
         else
         {
             std::cerr << "Unknown argument: " << arg << " (use --help for options)"
-                << std::endl;
+                      << std::endl;
             return 1;
         }
     }
@@ -123,17 +126,17 @@ int main(const int argc, char* argv[])
 
     // ---- Build the training environment ----
     auto provider = SimulationBuilder()
-                    .setClock(60.0)
-                    .setDataSource(dataCsvPath)
-                    .setRoom(20.0)
-                    .addWall(5.0, 2.5, 0.3, 0.6)
-                    .addWall(4.0, 2.5, 0.3, 0.6)
-                    .addWall(5.0, 2.5, 0.3, 0.6)
-                    .addWall(4.0, 2.5, 0.3, 0.6)
-                    .addWindow(2.0, 1.8, 0.5)
-                    .addHeater(2000.0)
-                    .trainOLAModel(config)
-                    .build();
+                        .setClock(60.0)
+                        .setDataSource(dataCsvPath)
+                        .setRoom(20.0)
+                        .addWall(5.0, 2.5, 0.3, 0.6)
+                        .addWall(4.0, 2.5, 0.3, 0.6)
+                        .addWall(5.0, 2.5, 0.3, 0.6)
+                        .addWall(4.0, 2.5, 0.3, 0.6)
+                        .addWindow(2.0, 1.8, 0.5)
+                        .addHeater(2000.0)
+                        .trainOLAModel(config)
+                        .build();
 
     std::cout << "Simulation provider created successfully" << std::endl;
     std::cout << "Starting training simulation loop..." << std::endl;
@@ -160,7 +163,7 @@ int main(const int argc, char* argv[])
     std::cout << "Final room temperature: " << room->getTemperature() << " °C" << std::endl;
     std::cout << "Average user comfort: " << userComfortService->getUserComfort() << "%" << std::endl;
     std::cout << "Total energy consumed: " << consumptionService->getTotalEnergyKWh() << " kWh" << std::endl;
-    std::cout << "Total Cost energy: " << consumptionService->getTotalCost() << " currency units" << std::endl;
+    std::cout << "Total Cost energy: " << consumptionService->getTotalCost() * 0.000033 << " €" << std::endl;
 
     auto recorder = provider.get<IAIRecorder>();
     recorder->writeToCSV(outputDataPath);

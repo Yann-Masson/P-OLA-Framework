@@ -98,5 +98,6 @@ namespace POLA::Training
     std::string modelSavePath = "models/ai_model.pt";
     int logInterval = 10;  ///< Rollouts between console log messages
     int saveInterval = 10; ///< Rollouts between model checkpoint saves
+    bool saveEnabled = true; ///< Enable or disable model checkpointing
   };
 } // namespace POLA::Training
