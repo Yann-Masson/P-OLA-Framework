@@ -1,63 +1,23 @@
 /**
- * @file ActorCritic.cpp
+ * @file ActorCriticPOLA.cpp
  * @brief Implementation of the Actor-Critic neural network for PPO.
  */
 
-#include "ActorCritic.hpp"
-#include "TrainingConfig.hpp"
+#include "ActorCriticPOLA.hpp"
 
-#include <cmath>
 #include <filesystem>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include "../Utils/LibTorch.hpp"
 
-using namespace POLA::Training;
-
-// ============================================================================
-// Gaussian distribution utilities (not provided by LibTorch C++ API)
-// ============================================================================
-
-/**
- * @brief Log probability of x under a Gaussian N(mean, std^2).
- *        log p(x) = -0.5 * ((x - mean)/std)^2 - log(std) - 0.5 * log(2π)
- */
-torch::Tensor normalLogProb(const torch::Tensor& x, const torch::Tensor& mean,
-                            const torch::Tensor& std)
-{
-    const auto var = std * std;
-    return -0.5 * ((x - mean).pow(2) / (var + 1e-8)) - std.log() -
-        0.5 * std::log(2.0 * M_PI);
-}
-
-/**
- * @brief Entropy of a Gaussian N(mean, std^2).
- *        H = 0.5 * (1 + log(2π)) + log(std)
- */
-torch::Tensor normalEntropy(const torch::Tensor& std)
-{
-    return 0.5 + 0.5 * std::log(2.0 * M_PI) + std.log();
-}
-
-/**
- * @brief Orthogonal weight initialization (standard for PPO).
- */
-void orthogonalInit(torch::nn::Linear& layer, double gain = 1.0)
-{
-    torch::nn::init::orthogonal_(layer->weight, gain);
-    if (layer->bias.defined())
-    {
-        torch::nn::init::zeros_(layer->bias);
-    }
-}
+using namespace POLA::Training::Utils;
+using namespace POLA::Training::POLA;
 
 // ============================================================================
-// ActorCriticImpl
+// ActorCriticPOLAImpl
 // ============================================================================
 
-ActorCriticImpl::ActorCriticImpl(int64_t stateDim, int64_t actionDim,
-                                 int64_t hiddenDim)
+ActorCriticPOLAImpl::ActorCriticPOLAImpl(int64_t stateDim, int64_t actionDim,
+                                         int64_t hiddenDim)
     : _stateDim(stateDim), _actionDim(actionDim)
 {
     // ---- Actor network ----
@@ -92,7 +52,7 @@ ActorCriticImpl::ActorCriticImpl(int64_t stateDim, int64_t actionDim,
 }
 
 std::tuple<torch::Tensor, torch::Tensor>
-ActorCriticImpl::forward(torch::Tensor state)
+ActorCriticPOLAImpl::forward(torch::Tensor state)
 {
     // Actor pathway → action logit (unbounded)
     auto a = torch::relu(actor_fc1->forward(state));
@@ -108,7 +68,7 @@ ActorCriticImpl::forward(torch::Tensor state)
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
-ActorCriticImpl::act(torch::Tensor state)
+ActorCriticPOLAImpl::act(torch::Tensor state)
 {
     torch::NoGradGuard noGrad;
 
@@ -126,7 +86,7 @@ ActorCriticImpl::act(torch::Tensor state)
 }
 
 std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
-ActorCriticImpl::evaluate(torch::Tensor states, torch::Tensor actionLogits)
+ActorCriticPOLAImpl::evaluate(torch::Tensor states, torch::Tensor actionLogits)
 {
     auto [meanLogits, values] = forward(states);
 
@@ -137,7 +97,7 @@ ActorCriticImpl::evaluate(torch::Tensor states, torch::Tensor actionLogits)
     return {logProbs, values.squeeze(-1), entropy};
 }
 
-void ActorCriticImpl::exportActor(const std::string& path)
+void ActorCriticPOLAImpl::exportActor(const std::string& path)
 {
     namespace fs = std::filesystem;
 
@@ -153,7 +113,7 @@ void ActorCriticImpl::exportActor(const std::string& path)
     // Build a self-contained TorchScript module for inference.
     // This embeds the normalization constants and sigmoid activation,
     // so AIModel doesn't need to know about training internals.
-    torch::jit::script::Module jitModule("ThermostatPolicy");
+    torch::jit::script::Module jitModule("ThermostatPolicyPOLA");
 
     // Register actor parameters (moved to CPU for portability)
     jitModule.register_parameter("actor_fc1_w", actor_fc1->weight.clone().cpu(),
@@ -235,7 +195,7 @@ void ActorCriticImpl::exportActor(const std::string& path)
     jitModule.save(path);
 }
 
-void ActorCriticImpl::saveCheckpoint(const std::string& path)
+void ActorCriticPOLAImpl::saveCheckpoint(const std::string& path)
 {
     namespace fs = std::filesystem;
     const fs::path filePath(path);
@@ -243,13 +203,13 @@ void ActorCriticImpl::saveCheckpoint(const std::string& path)
     {
         fs::create_directories(filePath.parent_path());
     }
-    torch::save(std::make_shared<ActorCriticImpl>(*this), path);
-    std::cout << "[ActorCritic] Checkpoint saved to: " << path << std::endl;
+    torch::save(std::make_shared<ActorCriticPOLAImpl>(*this), path);
+    std::cout << "[ActorCriticPOLA] Checkpoint saved to: " << path << std::endl;
 }
 
-void ActorCriticImpl::loadCheckpoint(const std::string& path)
+void ActorCriticPOLAImpl::loadCheckpoint(const std::string& path)
 {
-    auto loaded = std::make_shared<ActorCriticImpl>(_stateDim, _actionDim);
+    auto loaded = std::make_shared<ActorCriticPOLAImpl>(_stateDim, _actionDim);
     torch::load(loaded, path);
     // Copy parameters from the loaded module into this one
     auto srcParams = loaded->named_parameters();
@@ -262,5 +222,5 @@ void ActorCriticImpl::loadCheckpoint(const std::string& path)
             dstParams[p.key()].copy_(p.value());
         }
     }
-    std::cout << "[ActorCritic] Checkpoint loaded from: " << path << std::endl;
+    std::cout << "[ActorCriticPOLA] Checkpoint loaded from: " << path << std::endl;
 }

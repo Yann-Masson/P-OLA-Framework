@@ -86,8 +86,7 @@ namespace POLA::Training
         double dt = 60.0; ///< Simulation time step in seconds
 
         // ---- Network Architecture ----
-        int stateDim =
-            42;
+        int stateDim = 42;
         ///< Number of state features: tempIn(1) + price(1) + dist(1) + vel(1)
                  ///< + weatherForecast(6×2=12) + userPrefs(2) + userSchedule(24)
         int actionDim = 1; ///< Number of actions (heater power)

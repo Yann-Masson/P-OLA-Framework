@@ -12,15 +12,13 @@
 
 #pragma once
 
-#include <forge/provider.hpp>
-#include <forge/provider_builder.hpp>
-#include <functional>
-#include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 
-#include "Interfaces/IEnvironmentControl.hpp"
-#include "Room/Room.hpp"
+#include <forge/provider.hpp>
+#include <forge/provider_builder.hpp>
+
 #include "Training/TrainingConfig.hpp"
 
 namespace POLA::Common {
@@ -46,7 +44,7 @@ namespace POLA::Common {
  */
 class SimulationBuilder {
 public:
-  /// Set the simulation clock time scale (e.g., 900 = 1 real second = 15
+  /// Set the simulation clock timescale (e.g., 900 = 1 real second = 15
   /// minutes).
   SimulationBuilder &setClock(double fixedDtSeconds = 60.0);
 
@@ -74,12 +72,12 @@ public:
   SimulationBuilder &useRuleBasedModel();
 
   /// Use the Reinforcement Learning PPO Agent for training!
-  SimulationBuilder &useTrainingAgent(const Training::TrainingConfig &config);
+  SimulationBuilder &trainPOLAModel(const Training::TrainingConfig &config);
 
   /// Use the GPS-free PPO Agent for ablation training (no gpsDistance /
   /// userVelocity).
   SimulationBuilder &
-  useTrainingAgentNoGPS(const Training::TrainingConfig &config);
+  trainOLAModel(const Training::TrainingConfig &config);
 
   /// Build the provider with all registered components.
   forge::Provider build();
@@ -92,12 +90,12 @@ private:
   std::string _modelPath;
   bool _useRuleBased = false;
 
-  /// True if the user called .useTrainingAgent() — means the IAIModel was
+  /// True if the user called .trainPOLAModel() — means the IAIModel was
   /// already pushed into _registrations.
-  bool _hasTrainingAgent = false;
+  bool _trainingPOLAAgent = false;
 
-  /// True if the user called .useTrainingAgentNoGPS().
-  bool _hasTrainingAgentNoGPS = false;
+  /// True if the user called .trainOLAModel().
+  bool _trainingOLAAgent = false;
 
   // Deferred registrations stored as lambdas applied to the ProviderBuilder
   std::vector<std::function<void(forge::ProviderBuilder &)>> _registrations;
@@ -109,7 +107,7 @@ private:
  * @brief Creates a fully configured service provider with the default room
  * layout.
  *
- * @param timeScale Simulation time scale (e.g., 900 means 1 real second = 15
+ * @param timeScale Simulation timescale (e.g., 900 means 1 real second = 15
  * minutes)
  * @param dataCsvPath Path to the CSV data file (optional)
  * @param modelPath Path to the trained AI model (optional, if empty uses

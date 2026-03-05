@@ -2,11 +2,11 @@
 
 add_library(pola_training
     RewardFunction.cpp
-    RewardFunctionNoGPS.cpp
-    ActorCritic.cpp
-    ActorCriticNoGPS.cpp
-    PPOTrainingAgent.cpp
-    PPOTrainingAgentNoGPS.cpp
+    P-OLA/ActorCriticPOLA.cpp
+    OLA/ActorCriticOLA.cpp
+    P-OLA/POLATrainingAgent.cpp
+    OLA/OLATrainingAgent.cpp
+    Utils/LibTorch.cpp
 )
 
 target_include_directories(pola_training PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

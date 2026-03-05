@@ -22,7 +22,6 @@
 #include "Simulation/Room/Room.hpp"
 #include "Simulation/SmartThermostat/AIRecorder.hpp"
 #include "Simulation/SmartThermostat/SmartThermostat.hpp"
-#include "Simulation/SmartThermostat/SmartThermostatNoGPS.hpp"
 #include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
 #include "Simulation/TemperatureFactor/Window.hpp"
@@ -34,16 +33,9 @@
 #include "Interfaces/IAIModel.hpp"
 #include "Interfaces/IAIRecorder.hpp"
 #include "Interfaces/IClock.hpp"
-#include "Interfaces/IEnvironmentControl.hpp"
 
-
-#include "Interfaces/IAIModelNoGPS.hpp"
-#include "Services/Clock.hpp"
-#include "Training/PPOTrainingAgent.hpp"
-#include "Training/PPOTrainingAgentNoGPS.hpp"
-
-
-#include <random>
+#include "Training/P-OLA/POLATrainingAgent.hpp"
+#include "Training/OLA/OLATrainingAgent.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
@@ -129,35 +121,37 @@ SimulationBuilder &SimulationBuilder::useRuleBasedModel() {
 }
 
 SimulationBuilder &
-SimulationBuilder::useTrainingAgent(const Training::TrainingConfig &config) {
+SimulationBuilder::trainPOLAModel(const Training::TrainingConfig &config) {
   _modelPath.clear();
   _useRuleBased = false;
-  _hasTrainingAgent = true;
+  _trainingPOLAAgent = true;
+  _trainingOLAAgent = false;
 
-  // Register the PPOTrainingAgent as IAIModel
+  // Register the POLATrainingAgent as IAIModel
   _registrations.push_back([config](ProviderBuilder &pb) {
-    pb.addService<IAIModel, Training::PPOTrainingAgent>(
-        std::function<std::shared_ptr<Training::PPOTrainingAgent>(ProviderRef)>(
+    pb.addService<IAIModel, Training::POLA::POLATrainingAgent>(
+        std::function<std::shared_ptr<Training::POLA::POLATrainingAgent>(ProviderRef)>(
             [config](ProviderRef p) {
-              return std::make_shared<Training::PPOTrainingAgent>(p, config);
+              return std::make_shared<Training::POLA::POLATrainingAgent>(p, config);
             }));
   });
 
   return *this;
 }
 
-SimulationBuilder &SimulationBuilder::useTrainingAgentNoGPS(
+SimulationBuilder &SimulationBuilder::trainOLAModel(
     const Training::TrainingConfig &config) {
   _modelPath.clear();
   _useRuleBased = false;
-  _hasTrainingAgentNoGPS = true;
+  _trainingPOLAAgent = false;
+  _trainingOLAAgent = true;
 
-  // Register PPOTrainingAgentNoGPS as IAIModelNoGPS
+  // Register OLATrainingAgent as IAIModel
   _registrations.push_back([config](ProviderBuilder &pb) {
-    pb.addService<Interfaces::IAIModelNoGPS, Training::PPOTrainingAgentNoGPS>(
-        std::function<std::shared_ptr<Training::PPOTrainingAgentNoGPS>(
+    pb.addService<IAIModel, Training::OLA::OLATrainingAgent>(
+        std::function<std::shared_ptr<Training::OLA::OLATrainingAgent>(
             ProviderRef)>([config](ProviderRef p) {
-          return std::make_shared<Training::PPOTrainingAgentNoGPS>(p, config);
+          return std::make_shared<Training::OLA::OLATrainingAgent>(p, config);
         }));
   });
 
@@ -180,7 +174,7 @@ Provider SimulationBuilder::build() {
             << "  Starting room temp: "
             << (_hasRoom ? std::to_string(_startingRoomTemp) + "C" : "N/A")
             << "\n"
-            << "  Has training agent: " << (_hasTrainingAgent ? "Yes" : "No")
+            << "  Has training agent: " << (_trainingPOLAAgent ? "Yes" : "No")
             << "\n"
             << "  Registered temperature factors: " << _registrations.size()
             << "\n"
@@ -201,7 +195,7 @@ Provider SimulationBuilder::build() {
 
   std::cout << "[SimulationBuilder] Building provider with "
             << _registrations.size() << " temperature factors and "
-            << (_hasTrainingAgent
+            << (_trainingPOLAAgent
                     ? "a training agent"
                     : (_useRuleBased ? "a rule-based model" : "an AI model"))
             << std::endl;
@@ -233,7 +227,7 @@ Provider SimulationBuilder::build() {
             << " temperature factors (walls, windows, heaters)" << std::endl;
 
   // --- AI model (only when NOT using the training agent) ---
-  if (!_hasTrainingAgent) {
+  if (!_trainingPOLAAgent) {
     if (!_modelPath.empty() && fs::exists(_modelPath)) {
       std::cout << "[SimulationBuilder] Using AI model from: " << _modelPath
                 << std::endl;
@@ -250,7 +244,7 @@ Provider SimulationBuilder::build() {
   }
 
   std::cout << "[SimulationBuilder] AI model registered: "
-            << (_hasTrainingAgent
+            << (_trainingPOLAAgent
                     ? "N/A (training agent handles this)"
                     : (_useRuleBased ? "RuleBasedModel"
                                      : "AIModel from " + _modelPath))
@@ -261,16 +255,9 @@ Provider SimulationBuilder::build() {
 
   std::cout << "[SimulationBuilder] AIRecorder service registered" << std::endl;
 
-  // --- SmartThermostat (GPS-aware or GPS-free depending on mode) ---
-  if (_hasTrainingAgentNoGPS) {
-    builder.addService<ISmartThermostat, SmartThermostatNoGPS>();
-    std::cout << "[SimulationBuilder] SmartThermostatNoGPS service registered"
-              << std::endl;
-  } else {
-    builder.addService<ISmartThermostat, SmartThermostat>();
-    std::cout << "[SimulationBuilder] SmartThermostat service registered"
-              << std::endl;
-  }
+  builder.addService<ISmartThermostat, SmartThermostat>();
+  std::cout << "[SimulationBuilder] SmartThermostat service registered"
+            << std::endl;
 
   // --- Room ---
   if (_hasRoom) {

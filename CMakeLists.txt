@@ -6,7 +6,7 @@ if(WIN32)
     configure_cuda_windows()
 endif()
 
-project(P-OLA_Simulator)
+project(Simulator)
 
 # Place executables at the root of the build directory.
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")

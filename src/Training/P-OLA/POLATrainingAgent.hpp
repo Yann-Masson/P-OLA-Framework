@@ -5,18 +5,17 @@
 
 #pragma once
 
-#include "ActorCritic.hpp"
+#include "ActorCriticPOLA.hpp"
 #include "Interfaces/IAIModel.hpp"
-#include "Interfaces/IEnvironmentControl.hpp"
-#include "RewardFunction.hpp"
-#include "TrainingConfig.hpp"
+#include "../RewardFunction.hpp"
+#include "../TrainingConfig.hpp"
 
 #include <forge/provider.hpp>
 #include <memory>
 #include <optional>
 #include <random>
 
-namespace POLA::Training
+namespace POLA::Training::POLA
 {
     /**
      * @brief An Inverse RL agent that looks like an IAIModel to the simulation.
@@ -28,7 +27,7 @@ namespace POLA::Training
      * 3. Trains PPO if the rollout buffer is full.
      * 4. Returns the next action for the simulation to apply.
      */
-    class PPOTrainingAgent : public Interfaces::IAIModel
+    class POLATrainingAgent : public Interfaces::IAIModel
     {
     public:
         /**
@@ -38,8 +37,8 @@ namespace POLA::Training
          * @param config Training configuration parameters
          * @param seed Random seed for exploration and env resets
          */
-        PPOTrainingAgent(const forge::ProviderRef& provider,
-                         const TrainingConfig& config, uint32_t seed = 42);
+        POLATrainingAgent(const forge::ProviderRef& provider,
+                         const TrainingConfig& config);
 
         /**
          * @brief Predict the next action, but also perform learning!
@@ -62,7 +61,7 @@ namespace POLA::Training
         };
 
         // Network and optimizer
-        ActorCritic _actorCritic = nullptr;
+        ActorCriticPOLA _actorCritic = nullptr;
         std::unique_ptr<torch::optim::Adam> _optimizer;
         torch::Device _device = torch::kCPU;
 

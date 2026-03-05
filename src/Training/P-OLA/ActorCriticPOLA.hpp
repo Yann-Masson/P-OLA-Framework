@@ -1,5 +1,5 @@
 /**
- * @file ActorCritic.hpp
+ * @file ActorCriticPOLA.hpp
  * @brief Actor-Critic neural network for PPO training.
  */
 
@@ -9,7 +9,7 @@
 #include <torch/torch.h>
 
 
-namespace POLA::Training
+namespace POLA::Training::POLA
 {
     /**
      * @brief Actor-Critic network with separate actor and critic pathways.
@@ -27,14 +27,14 @@ namespace POLA::Training
      *
      * Weights are initialized with orthogonal initialization (standard for PPO).
      */
-    struct ActorCriticImpl : torch::nn::Module
+    struct ActorCriticPOLAImpl : torch::nn::Module
     {
         /**
          * @param stateDim  Number of state features (default: 6)
          * @param actionDim Number of action outputs (default: 1)
          * @param hiddenDim Hidden layer size (default: 64)
          */
-        ActorCriticImpl(int64_t stateDim, int64_t actionDim, int64_t hiddenDim = 64);
+        ActorCriticPOLAImpl(int64_t stateDim, int64_t actionDim, int64_t hiddenDim = 64);
 
         /**
          * @brief Forward pass returning raw actor logit and value estimate.
@@ -109,5 +109,5 @@ namespace POLA::Training
         int64_t _actionDim;
     };
 
-    TORCH_MODULE(ActorCritic);
+    TORCH_MODULE(ActorCriticPOLA);
 } // namespace POLA::Training

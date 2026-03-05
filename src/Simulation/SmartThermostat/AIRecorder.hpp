@@ -10,49 +10,50 @@
 #include <string>
 #include <vector>
 
-namespace POLA::Simulation {
+namespace POLA::Simulation
+{
+    struct AIRecord
+    {
+        double timestamp;
+        double tempIn;
+        double electricityPrice;
+        double userDistanceKm;
+        double userVelocityKmMin;
+        Common::WeatherData weather;
+        Common::UserPreferenceData userPreferences;
+        Common::UserScheduleData userSchedule;
+        double aiPrediction;
+        double actualPower;
+        double reward;
+    };
 
-struct AIRecord {
-  double timestamp;
-  double tempIn;
-  double electricityPrice;
-  double userDistanceKm;
-  double userVelocityKmMin;
-  POLA::Common::WeatherData weather;
-  POLA::Common::UserPreferenceData userPreferences;
-  POLA::Common::UserScheduleData userSchedule;
-  double aiPrediction;
-  double actualPower;
-  double reward;
-};
+    class AIRecorder : public Interfaces::IAIRecorder
+    {
+    public:
+        AIRecorder() = default;
 
-class AIRecorder : public POLA::Interfaces::IAIRecorder {
-public:
-  AIRecorder() = default;
+        /**
+         * @brief Record an AI state and its prediction
+         */
+        void record(double timestamp, const Common::AIState& state,
+                    double prediction, double actualPower, double reward) override;
 
-  /**
-   * @brief Record an AI state and its prediction
-   */
-  void record(double timestamp, const POLA::Common::AIState &state,
-              double prediction, double actualPower, double reward) override;
+        /**
+         * @brief Write all records to a CSV file
+         */
+        void writeToCSV(const std::string& filepath) override;
 
-  /**
-   * @brief Write all records to a CSV file
-   */
-  void writeToCSV(const std::string &filepath) override;
+        /**
+         * @brief Get the number of records
+         */
+        size_t getRecordCount() const override;
 
-  /**
-   * @brief Get the number of records
-   */
-  size_t getRecordCount() const override;
+        /**
+         * @brief Clear all records
+         */
+        void clear() override;
 
-  /**
-   * @brief Clear all records
-   */
-  void clear() override;
-
-private:
-  std::vector<AIRecord> _records;
-};
-
+    private:
+        std::vector<AIRecord> _records;
+    };
 } // namespace POLA::Simulation

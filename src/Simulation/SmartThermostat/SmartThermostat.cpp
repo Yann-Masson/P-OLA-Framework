@@ -21,49 +21,57 @@ using namespace POLA::Interfaces;
 
 using namespace POLA::Simulation;
 
-SmartThermostat::SmartThermostat(const forge::ProviderRef &provider)
-    : _provider(provider) {}
+SmartThermostat::SmartThermostat(const forge::ProviderRef& provider)
+    : _provider(provider)
+{
+}
 
 void SmartThermostat::reset() { _totalElapsedTime = 0; }
 
-double SmartThermostat::decide(const double currentTemp) {
-  auto elapsedTime = _provider.get<IClock>()->getElapsedTime();
+double SmartThermostat::decide(const double currentTemp)
+{
+    const auto elapsedTime = _provider.get<IClock>()->getElapsedTime();
 
-  _totalElapsedTime += elapsedTime;
+    _totalElapsedTime += elapsedTime;
 
-  if (_totalElapsedTime < DECIDE_DELAY) {
-    return -1.0;
-  }
+    if (_totalElapsedTime < DECIDE_DELAY)
+    {
+        return -1.0;
+    }
 
-  _totalElapsedTime = 0; // reset timer after decision
+    _totalElapsedTime = 0; // reset timer after decision
 
-  // Aggregation of data from input services
-  const auto energyPrice =
-      _provider.get<IInputService<EnergyPriceData>>()->getInput();
-  const auto weather = _provider.get<IInputService<WeatherData>>()->getInput();
-  const auto userPref =
-      _provider.get<IInputService<UserPreferenceData>>()->getInput();
-  const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
-  const auto userSchedule =
-      _provider.get<IInputService<UserScheduleData>>()->getInput();
+    // Aggregation of data from input services
+    const auto energyPrice =
+        _provider.get<IInputService<EnergyPriceData>>()->getInput();
+    const auto weather = _provider.get<IInputService<WeatherData>>()->getInput();
+    const auto userPref =
+        _provider.get<IInputService<UserPreferenceData>>()->getInput();
+    const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
+    const auto userSchedule =
+        _provider.get<IInputService<UserScheduleData>>()->getInput();
 
-  AIState state{/* tempIn           */ currentTemp,
-                /* electricityPrice */ energyPrice.pricesPerKwh[0],
-                /* userDistanceKm   */ gps.distanceKm,
-                /* userVelocityKmMin*/ gps.velocityKmMin,
-                /* weather          */ weather,
-                /* userPreferences  */ userPref,
-                /* userSchedule     */ userSchedule};
+    const AIState state{
+        currentTemp,
+        energyPrice.pricesPerKwh[0],
+        gps.distanceKm,
+        gps.velocityKmMin,
+        weather,
+        userPref,
+        userSchedule
+    };
 
-  const auto aiModel = _provider.get<IAIModel>();
-  return aiModel->predict(state);
+    const auto aiModel = _provider.get<IAIModel>();
+    return aiModel->predict(state);
 }
 
-void SmartThermostat::simulate(const double currentTemp) {
-  double power = decide(currentTemp);
-  if (power < 0) {
-    return;
-  }
-  auto heater = _provider.get<TemperatureFactor::Heater>();
-  heater->setPower(std::clamp(power, 0.0, 1.0));
+void SmartThermostat::simulate(const double currentTemp)
+{
+    double power = decide(currentTemp);
+    if (power < 0)
+    {
+        return;
+    }
+    auto heater = _provider.get<TemperatureFactor::Heater>();
+    heater->setPower(std::clamp(power, 0.0, 1.0));
 }

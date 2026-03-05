@@ -1,12 +1,21 @@
 /**
- * @file PPOTrainingAgent.cpp
- * @brief Implementation of the PPOTrainingAgent.
+ * @file OLATrainingAgent.cpp
+ * @brief Implementation of the GPS-free PPO training agent.
+ *
+ * State vector layout (40 dimensions, matching ActorCriticOLA.exportActor):
+ *   [0]     tempIn
+ *   [1]     electricityPrice
+ *   [2..13] weather.forecast[0..5] (outdoorTemp, sunlightLux per hour × 6)
+ *   [14]    userPreferences.minTemperature
+ *   [15]    userPreferences.maxTemperature
+ *   [16..39] userSchedule.userPresent[0..23]
  */
 
-#include "PPOTrainingAgent.hpp"
 #include <algorithm>
 #include <filesystem>
 #include <iostream>
+
+#include "OLATrainingAgent.hpp"
 
 #include "Common/DataTypes.hpp"
 #include "Interfaces/IAIRecorder.hpp"
@@ -14,83 +23,83 @@
 #include "Interfaces/IInputService.hpp"
 #include "Simulation/Room/Room.hpp"
 
-using namespace POLA::Training;
+using namespace POLA::Training::OLA;
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
 
-PPOTrainingAgent::PPOTrainingAgent(const forge::ProviderRef& provider,
-                                   const TrainingConfig& config, uint32_t seed)
+// OLA state is 40 dims: tempIn(1) + price(1) + weather(12) + prefs(2) +
+// schedule(24)
+static constexpr int kOLAStateDim = 40;
+
+OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef& provider,
+                                   const TrainingConfig& config,
+                                   uint32_t /*seed*/)
     : _provider(provider), _config(config), _rewardFn(provider, config)
 {
     if (torch::cuda::is_available())
     {
         _device = torch::kCUDA;
-        std::cout << "[PPO] Using CUDA device" << std::endl;
+        std::cout << "[OLA] Using CUDA device" << std::endl;
     }
     else if (torch::mps::is_available())
     {
         _device = torch::kMPS;
-        std::cout << "[PPO] Using MPS device" << std::endl;
+        std::cout << "[OLA] Using MPS device" << std::endl;
     }
     else
     {
         _device = torch::kCPU;
-        std::cout << "[PPO] Using CPU device" << std::endl;
+        std::cout << "[OLA] Using CPU device" << std::endl;
     }
 
     _actorCritic =
-        ActorCritic(config.stateDim, config.actionDim, config.hiddenDim);
+        ActorCriticOLA(kOLAStateDim, _config.actionDim, _config.hiddenDim);
     _actorCritic->to(_device);
 
     _optimizer = std::make_unique<torch::optim::Adam>(
         _actorCritic->parameters(),
-        torch::optim::AdamOptions(config.learningRate));
+        torch::optim::AdamOptions(_config.learningRate));
 
     _rollout.reserve(_config.rolloutSteps);
 
-    // ---- Resume from checkpoint if one exists ----
-    // The checkpoint file sits alongside the TorchScript export,
-    // using a .ckpt extension instead of .pt
+    // Resume from checkpoint if one exists
     const std::string ckptPath = _config.modelSavePath + ".ckpt";
     if (std::filesystem::exists(ckptPath))
     {
         try
         {
             _actorCritic->loadCheckpoint(ckptPath);
-            std::cout << "[PPO] Resumed from checkpoint: " << ckptPath << std::endl;
+            std::cout << "[OLA] Resumed from checkpoint: " << ckptPath << std::endl;
         }
         catch (const std::exception& e)
         {
-            std::cerr << "[PPO] Warning: failed to load checkpoint '" << ckptPath
+            std::cerr << "[OLA] Warning: failed to load checkpoint '" << ckptPath
                 << "': " << e.what() << " — starting from scratch."
                 << std::endl;
         }
     }
     else
     {
-        std::cout << "[PPO] No checkpoint found at '" << ckptPath
+        std::cout << "[OLA] No checkpoint at '" << ckptPath
             << "' — starting from scratch." << std::endl;
     }
 }
 
-torch::Tensor PPOTrainingAgent::normalizeState(const AIState& state) const
+torch::Tensor OLATrainingAgent::normalizeState(const AIState& state) const
 {
-    // Flatten state into a float vector: 42 dims total
-    // [tempIn, price, userDistanceKm, userVelocityKmMin,
-    // forecast×6×(outdoorTemp,sunlight), prefMin, prefMax, schedule×24]
+    // Flatten to 40 floats matching ActorCriticOLA column layout
     std::vector<float> values;
-    values.reserve(42);
+    values.reserve(kOLAStateDim);
 
+    // [0] tempIn
     values.push_back(static_cast<float>(StateNorm::normalize(
         state.tempIn, StateNorm::tempIn_offset, StateNorm::tempIn_scale)));
+    // [1] electricityPrice
     values.push_back(static_cast<float>(
         StateNorm::normalize(state.electricityPrice, StateNorm::price_offset,
                              StateNorm::price_scale)));
-    values.push_back(static_cast<float>(StateNorm::normalize(
-        state.userDistanceKm, StateNorm::dist_offset, StateNorm::dist_scale)));
-    values.push_back(static_cast<float>(StateNorm::normalize(
-        state.userVelocityKmMin, StateNorm::vel_offset, StateNorm::vel_scale)));
 
+    // [2..13] weather forecast (6 hours × 2 features)
     for (const auto& wp : state.weather.forecast)
     {
         values.push_back(static_cast<float>(
@@ -101,64 +110,92 @@ torch::Tensor PPOTrainingAgent::normalizeState(const AIState& state) const
             StateNorm::sunlight_scale)));
     }
 
+    // [14] userPreferences.minTemperature
     values.push_back(static_cast<float>(StateNorm::normalize(
         state.userPreferences.minTemperature, StateNorm::prefTemp_offset,
         StateNorm::prefTemp_scale)));
+    // [15] userPreferences.maxTemperature
     values.push_back(static_cast<float>(StateNorm::normalize(
         state.userPreferences.maxTemperature, StateNorm::prefTemp_offset,
         StateNorm::prefTemp_scale)));
 
+    // [16..39] userSchedule (24 hours, binary)
     for (const bool present : state.userSchedule.userPresent)
-    {
         values.push_back(present ? 1.0f : 0.0f);
-    }
 
     auto tensor = torch::tensor(
         values, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
 
-    return tensor.unsqueeze(0); // [1, 42]
+    return tensor.unsqueeze(0); // [1, 40]
 }
 
-double PPOTrainingAgent::predict(const AIState& currentState)
+double OLATrainingAgent::predict(const AIState& currentState)
 {
     const auto stateTensor = normalizeState(currentState);
 
-    // 1. Process the previous step's reward (if any)
+    // 1. Reward the previous transition
     if (_prevState.has_value() && _prevTransition.has_value())
     {
         const float logit = _prevTransition->actionLogit;
-
         const double powerW = std::clamp(1.0 / (1.0 + std::exp(-logit)), 0.0, 1.0);
 
-        // At this point in the simulator code, a step has occurred.
-        // We know the old state, the old action, and the resulting new state.
-        const double reward =
-            _rewardFn.compute(_prevState.value(), powerW, currentState);
-        double timestamp = _provider.get<IClock>()->getElapsedTimeSinceStart();
-        double actualPower = std::clamp(powerW, 0.0, 1.0);
-        const auto recorder = _provider.get<IAIRecorder>();
-        recorder->record(timestamp, _prevState.value(), powerW, actualPower,
-                         reward);
+        const auto fullPrevState =
+            AIState{
+                .tempIn = _prevState->tempIn,
+                .electricityPrice = _prevState->electricityPrice,
+                .userDistanceKm = 0.0, // n/a in no-GPS model
+                .userVelocityKmMin = 0.0,
+                .weather = _prevState->weather,
+                .userPreferences = _prevState->userPreferences,
+                .userSchedule = _prevState->userSchedule
+            };
+        const auto fullCurrentState =
+            AIState{
+                .tempIn = currentState.tempIn,
+                .electricityPrice = currentState.electricityPrice,
+                .userDistanceKm = 0.0, // n/a in no-GPS model
+                .userVelocityKmMin = 0.0,
+                .weather = currentState.weather,
+                .userPreferences = currentState.userPreferences,
+                .userSchedule = currentState.userSchedule
+            };
 
-        // Store the transition
+        const double reward =
+            _rewardFn.compute(fullPrevState, powerW, fullCurrentState);
+
+        const double timestamp =
+            _provider.get<IClock>()->getElapsedTimeSinceStart();
+        const double actualPower = std::clamp(powerW, 0.0, 1.0);
+
+        // IAIRecorder still expects the full AIState — build a compatible one
+        // by zeroing GPS fields so the recorder CSV remains well-formed.
+        AIState recordState{};
+        recordState.tempIn = currentState.tempIn;
+        recordState.electricityPrice = currentState.electricityPrice;
+        recordState.userDistanceKm = 0.0; // n/a in no-GPS model
+        recordState.userVelocityKmMin = 0.0;
+        recordState.weather = currentState.weather;
+        recordState.userPreferences = currentState.userPreferences;
+        recordState.userSchedule = currentState.userSchedule;
+
+        const auto recorder = _provider.get<IAIRecorder>();
+        recorder->record(timestamp, recordState, powerW, actualPower, reward);
+
         _prevTransition->reward = static_cast<float>(reward);
         _rollout.push_back(_prevTransition.value());
 
-        // Check if rollout buffer is full
-        if (_rollout.size() == _config.rolloutSteps)
+        if (_rollout.size() == static_cast<size_t>(_config.rolloutSteps))
         {
-            _rollout.back().done = true; // Mark episode as done
+            _rollout.back().done = true;
 
             // Compute episode average temperature before the rollout is cleared
             double totalEpTemp = 0.0;
             for (const auto& t : _rollout)
-            {
                 totalEpTemp += t.roomTemperature;
-            }
-            const double avgEpTemp = totalEpTemp / static_cast<double>(_rollout.size());
+            const double avgEpTemp =
+                totalEpTemp / static_cast<double>(_rollout.size());
 
-            updatePPO(stateTensor); // Train the network!
-
+            updatePPO(stateTensor);
             _rollout.clear();
 
             const auto room = _provider.get<Simulation::Room>();
@@ -171,26 +208,25 @@ double PPOTrainingAgent::predict(const AIState& currentState)
         }
     }
 
-    // 2. Sample action from the current policy
+    // 2. Sample action from current policy
     _actorCritic->eval();
     auto [actionLogit, logProb, value] = _actorCritic->act(stateTensor);
 
-    double rawLogit = actionLogit.item<float>();
-    // Convert logit to action via sigmoid for the environment
-    double action = torch::sigmoid(actionLogit).item<double>();
-    double powerW = std::clamp(action, 0.0, 1.0);
+    const double rawLogit = actionLogit.item<float>();
+    const double action = torch::sigmoid(actionLogit).item<double>();
+    const double powerW = std::clamp(action, 0.0, 1.0);
 
-    // 3. Save transition data
+    // 3. Store transition
     _prevState = currentState;
 
     RolloutTransition transition;
     const auto room = _provider.get<Simulation::Room>();
     transition.stateTensor = stateTensor.squeeze(0);
-    transition.actionLogit = rawLogit;
+    transition.actionLogit = static_cast<float>(rawLogit);
     transition.logProb = logProb.item<float>();
     transition.value = value.item<float>();
     transition.roomTemperature = static_cast<float>(room->getTemperature());
-    transition.reward = 0.0f; // Calculated next tick
+    transition.reward = 0.0f;
     transition.done = false;
 
     _prevTransition = transition;
@@ -199,19 +235,15 @@ double PPOTrainingAgent::predict(const AIState& currentState)
     return powerW;
 }
 
-void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
+void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
 {
     _actorCritic->train();
 
-    // Bootstrap: estimate value of the final state (needed for GAE)
     auto [_, __, lastValueTensor] = _actorCritic->act(finalStateTensor);
     const float lastValue = lastValueTensor.item<float>();
 
-    const int N = _rollout.size();
+    const int N = static_cast<int>(_rollout.size());
 
-    // ---- Compute GAE (Generalized Advantage Estimation) ----
-    // δ_t = r_t + γ * V(s_{t+1}) * (1 - done) - V(s_t)
-    // A_t = Σ_{l=0}^{T-t-1} (γλ)^l * δ_{t+l}
     std::vector<float> advantages(N, 0.0f);
     std::vector<float> returns(N, 0.0f);
 
@@ -231,7 +263,6 @@ void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         returns[t] = advantages[t] + _rollout[t].value;
     }
 
-    // ---- Convert rollout data to tensors ----
     std::vector<torch::Tensor> stateTensors;
     std::vector<float> actionLogits, logProbs, rewards;
 
@@ -243,30 +274,25 @@ void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         rewards.push_back(r.reward);
     }
 
-    auto statesTensor = torch::stack(stateTensors).to(_device); // [N, 6]
+    auto statesTensor = torch::stack(stateTensors).to(_device); // [N, 40]
     auto actionLogitsTensor =
         torch::tensor(
             actionLogits,
             torch::TensorOptions().dtype(torch::kFloat32).device(_device))
-        .unsqueeze(1); // [N, 1]
+        .unsqueeze(1);
     auto oldLogProbsTensor = torch::tensor(
-        logProbs,
-        torch::TensorOptions().dtype(torch::kFloat32).device(_device)); // [N]
+        logProbs, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
     auto advantagesTensor = torch::tensor(
         advantages,
-        torch::TensorOptions().dtype(torch::kFloat32).device(_device)); // [N]
+        torch::TensorOptions().dtype(torch::kFloat32).device(_device));
     auto returnsTensor = torch::tensor(
-        returns,
-        torch::TensorOptions().dtype(torch::kFloat32).device(_device)); // [N]
+        returns, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
 
-    // Normalize advantages (standard practice — stabilizes training)
     advantagesTensor = (advantagesTensor - advantagesTensor.mean()) /
         (advantagesTensor.std() + 1e-8);
 
-    // ---- PPO clipped update for K epochs ----
     for (int epoch = 0; epoch < _config.numEpochs; ++epoch)
     {
-        // Random shuffle for mini-batch construction
         auto indices = torch::randperm(
             N, torch::TensorOptions().dtype(torch::kLong).device(_device));
 
@@ -275,51 +301,37 @@ void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
             const int end = std::min(start + _config.miniBatchSize, N);
             auto mbIdx = indices.slice(0, start, end);
 
-            // Select mini-batch data
             auto mbStates = statesTensor.index_select(0, mbIdx);
             auto mbActionLogits = actionLogitsTensor.index_select(0, mbIdx);
             auto mbOldLogProbs = oldLogProbsTensor.index_select(0, mbIdx);
             auto mbAdvantages = advantagesTensor.index_select(0, mbIdx);
             auto mbReturns = returnsTensor.index_select(0, mbIdx);
 
-            // Evaluate actions under the CURRENT policy
             auto [newLogProbs, newValues, entropy] =
                 _actorCritic->evaluate(mbStates, mbActionLogits);
 
-            // ---- Clipped Surrogate Objective ----
-            // ratio = π_new(a|s) / π_old(a|s)
             auto ratio = torch::exp(newLogProbs - mbOldLogProbs);
             auto surr1 = ratio * mbAdvantages;
             auto surr2 = torch::clamp(ratio, 1.0 - _config.clipEpsilon,
                                       1.0 + _config.clipEpsilon) *
                 mbAdvantages;
             auto policyLoss = -torch::min(surr1, surr2).mean();
-
-            // ---- Value Loss (MSE) ----
             auto valueLoss = torch::nn::functional::mse_loss(newValues, mbReturns);
-
-            // ---- Entropy Bonus (encourages exploration) ----
             auto entropyLoss = -entropy.mean();
 
-            // ---- Total Loss ----
             auto totalLoss = policyLoss + _config.valueCoeff * valueLoss +
                 _config.entropyCoeff * entropyLoss;
 
-            // ---- Optimize ----
             _optimizer->zero_grad();
             totalLoss.backward();
-
-            // Gradient norm clipping (prevents catastrophic updates)
             torch::nn::utils::clip_grad_norm_(_actorCritic->parameters(),
                                               _config.maxGradNorm);
-
             _optimizer->step();
         }
     }
 
     _numRollouts++;
 
-    // ---- Logging ----
     if (_numRollouts % _config.logInterval == 0)
     {
         double totalReward = 0.0;
@@ -332,30 +344,24 @@ void PPOTrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         const double avgReward = totalReward / N;
         const double avgTemp = totalTemp / N;
 
-        std::cout << "[PPO] Rollout " << _numRollouts << " | Steps: " << _totalSteps
+        std::cout << "[OLA] Rollout " << _numRollouts << " | Steps: " << _totalSteps
             << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
-            << " | Avg Temp: " << avgTemp << " °C" << std::endl;
+            << " | Avg Temp: " << avgTemp << " \u00b0C" << std::endl;
 
         if (avgReward > _bestAvgReward)
-        {
             _bestAvgReward = avgReward;
-        }
     }
 
-    // ---- Periodic model checkpointing ----
     if (_numRollouts % _config.saveInterval == 0)
     {
         exportModel();
-        std::cout << "[PPO] Checkpoint saved to: " << _config.modelSavePath
+        std::cout << "[OLA] Checkpoint saved to: " << _config.modelSavePath
             << std::endl;
     }
 }
 
-void PPOTrainingAgent::exportModel()
+void OLATrainingAgent::exportModel()
 {
-    // 1. Export TorchScript inference model (used by AIModel::predict)
     _actorCritic->exportActor(_config.modelSavePath);
-
-    // 2. Save full weight checkpoint (used to resume training)
     _actorCritic->saveCheckpoint(_config.modelSavePath + ".ckpt");
 }

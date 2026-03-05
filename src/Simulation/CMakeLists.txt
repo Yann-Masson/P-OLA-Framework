@@ -3,8 +3,7 @@
 add_library(pola_simulation
     Room/Room.cpp
     SmartThermostat/SmartThermostat.cpp
-    SmartThermostat/SmartThermostatNoGPS.cpp
-    SmartThermostat/AIRecorder.cpp
+        SmartThermostat/AIRecorder.cpp
     TemperatureFactor/ATemperatureFactor.cpp
     TemperatureFactor/Heater.cpp
     TemperatureFactor/Wall.cpp

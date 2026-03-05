@@ -27,7 +27,7 @@ target_link_libraries(${PROJECT_NAME}
 )
 
 # ---- Training executable ----
-add_executable(P-OLA_Trainer TrainMain.cpp)
+add_executable(P-OLA_Trainer TrainPOLA.cpp)
 
 target_include_directories(P-OLA_Trainer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -46,13 +46,13 @@ target_link_libraries(P-OLA_Trainer
 )
 
 # ---- No-GPS Training executable ----
-add_executable(P-OLA_Trainer_NoGPS TrainMainNoGPS.cpp)
+add_executable(OLA_Trainer TrainOLA.cpp)
 
-target_include_directories(P-OLA_Trainer_NoGPS PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(OLA_Trainer PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
-target_compile_features(P-OLA_Trainer_NoGPS PRIVATE cxx_std_23)
+target_compile_features(OLA_Trainer PRIVATE cxx_std_23)
 
-target_link_libraries(P-OLA_Trainer_NoGPS
+target_link_libraries(OLA_Trainer
     PRIVATE
         pola_common
         pola_interfaces
@@ -68,5 +68,5 @@ target_link_libraries(P-OLA_Trainer_NoGPS
 if(MSVC)
     configure_windows_torch_runtime(${PROJECT_NAME})
     configure_windows_torch_runtime(P-OLA_Trainer)
-    configure_windows_torch_runtime(P-OLA_Trainer_NoGPS)
+    configure_windows_torch_runtime(OLA_Trainer)
 endif()

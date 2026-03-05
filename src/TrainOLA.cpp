@@ -1,53 +1,55 @@
 /**
- * @file TrainMain.cpp
- * @brief Entry point for PPO training of the smart thermostat AI model.
+ * @file TrainMainNoGPS.cpp
+ * @brief Entry point for PPO training of the GPS-free smart thermostat model.
  *
- * Uses SimulationBuilder to assemble the training environment with the same
- * Lego bricks as the real simulator — ensuring training physics match
- * deployment.
+ * Identical to TrainMain.cpp, except:
+ *   - Uses PPOTrainingAgentNoGPS (4-feature state, no GPS inputs)
+ *   - Default output path: models/ai_model_no_gps.pt
+ *   - No --w-gps option (GPS penalty is absent from the reward function)
  *
  * Usage:
- *   P-OLA_Trainer [options]
+ *   P-OLA_Trainer_NoGPS [options]
  *
  * Options:
  *   --timesteps N       Total training steps (default: 1000000)
  *   --lr RATE           Learning rate (default: 3e-4)
- *   --w-comfort W       Comfort penalty weight (default: 0.5)
- *   --w-economy W       Economy penalty weight (default: 0.3)
- *   --w-gps W           GPS arrival penalty weight (default: 0.2)
+ *   --w-comfort W       Comfort penalty weight (default: 0.8)
+ *   --w-economy W       Economy penalty weight (default: 0.2)
  *   --hidden-dim N      Hidden layer size (default: 64)
  *   --rollout-steps N   Steps per rollout (default: 2048)
  *   --epochs N          PPO epochs per update (default: 4)
- *   --output PATH       Model save path (default: models/ai_model.pt)
+ *   --output PATH       Model save path (default: models/ai_model_no_gps.pt)
  *   --seed N            Random seed (default: 42)
- *   --data PATH         CSV data file (default: data_home_1_scheduled.csv)
+ *   --data PATH         CSV data file (default: data_home_1_scheduled_GPS.csv)
  *   --help              Show this help message
- *
- * After training, the model is saved as a self-contained TorchScript file
- * that can be loaded directly by the P-OLA simulator.
  */
 
 #include <iostream>
 #include <string>
 
-#include "Interfaces/IAIModel.hpp"
-#include "Interfaces/IClock.hpp"
 #include "Interfaces/IAIRecorder.hpp"
+#include "Interfaces/IClock.hpp"
 #include "Simulation/ProviderSetup.hpp"
 #include "Simulation/Room/Room.hpp"
-#include "Training/PPOTrainingAgent.hpp"
+#include "Training/OLA/OLATrainingAgent.hpp"
 #include "Training/TrainingConfig.hpp"
 
-using namespace POLA::Training;
+
 using namespace POLA::Common;
 using namespace POLA::Simulation;
 using namespace POLA::Interfaces;
 
 int main(const int argc, char* argv[])
 {
-    TrainingConfig config;
+    POLA::Training::TrainingConfig config;
+    config.modelSavePath = "models/ai_model_no_gps.pt";
+
     std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled_GPS.csv";
-    std::string outputDataPath = "ai_records_training.csv";
+
+    std::string dataDir = std::string(DATA_DIR);
+
+    std::string defaultDataPath = dataDir + "/data_home_1_scheduled_GPS.csv";
+    std::string outputDataPath = "ai_records_training_no_gps.csv";
 
     // Parse command-line arguments
     for (int i = 1; i < argc; ++i)
@@ -77,34 +79,32 @@ int main(const int argc, char* argv[])
         else if (arg == "--help")
         {
             std::cout
-                << "P-OLA Smart Thermostat - PPO Trainer\n"
-                << "====================================\n\n"
-                << "Trains a reinforcement learning agent to control heater power\n"
-                << "while optimizing for comfort, energy cost, and GPS-aware "
-                "arrival.\n\n"
+                << "P-OLA Smart Thermostat - PPO Trainer (No GPS)\n"
+                << "=============================================\n\n"
+                << "Trains a reinforcement learning agent to control heater "
+                "power\n"
+                << "using only thermal and economic signals (no GPS data).\n\n"
                 << "Usage: " << argv[0] << " [options]\n\n"
                 << "Options:\n"
                 << "  --timesteps N       Total training steps       (default: "
                 "1000000)\n"
                 << "  --lr RATE           Learning rate              (default: "
                 "3e-4)\n"
-                << "  --w-comfort W       Comfort penalty weight     (default: 0.5)\n"
-                << "  --w-economy W       Economy penalty weight     (default: 0.3)\n"
+                << "  --w-comfort W       Comfort penalty weight     (default: 0.8)\n"
+                << "  --w-economy W       Economy penalty weight     (default: 0.2)\n"
                 << "  --hidden-dim N      Hidden layer size          (default: 64)\n"
                 << "  --rollout-steps N   Steps per rollout          (default: "
                 "2048)\n"
                 << "  --epochs N          PPO epochs per update      (default: 4)\n"
                 << "  --output PATH       Model output path          (default: "
-                "models/ai_model.pt)\n"
+                "models/ai_model_no_gps.pt)\n"
                 << "  --data PATH         CSV data file              (default: "
-                "data_home_1_scheduled.csv)\n"
-                << "  --output-data PATH  AI records output CSV file  (default: "
-                "ai_records_training.csv)\n"
+                "data_home_1_scheduled_GPS.csv)\n"
                 << "  --help              Show this help message\n\n"
                 << "Example:\n"
                 << "  " << argv[0]
                 << " --timesteps 500000 --w-economy 0.4 --output "
-                "models/eco_model.pt\n";
+                "models/eco_no_gps.pt\n";
             return 0;
         }
         else
@@ -116,35 +116,27 @@ int main(const int argc, char* argv[])
     }
 
     std::cout << "========================================" << std::endl;
-    std::cout << "P-OLA Trainer - Full Simulation Mode" << std::endl;
+    std::cout << "             OLA Trainer" << std::endl;
     std::cout << "========================================" << std::endl;
     std::cout << "Creating simulation environment..." << std::endl;
 
-    // ---- Build the training environment using the same Lego bricks ----
-    auto provider =
-        SimulationBuilder()
-        .setClock(60.0) // Fixed 60s per step
-        .setDataSource(dataCsvPath)
-        .setRoom(20.0)
-        // Same room layout as the real simulator
-        .addWall(5.0, 2.5, 0.3, 0.6)
-        .addWall(4.0, 2.5, 0.3, 0.6)
-        .addWall(5.0, 2.5, 0.3, 0.6)
-        .addWall(4.0, 2.5, 0.3, 0.6)
-        .addWindow(2.0, 1.8, 0.5)
-        .addHeater(2000.0)
-        // Training agent: The PPOTrainingAgent implements IAIModel and
-        // handles all RL internally when predict() is called.
-        .useTrainingAgent(config)
-        .build();
+    // ---- Build the training environment ----
+    auto provider = SimulationBuilder()
+                    .setClock(60.0)
+                    .setDataSource(dataCsvPath)
+                    .setRoom(20.0)
+                    .addWall(5.0, 2.5, 0.3, 0.6)
+                    .addWall(4.0, 2.5, 0.3, 0.6)
+                    .addWall(5.0, 2.5, 0.3, 0.6)
+                    .addWall(4.0, 2.5, 0.3, 0.6)
+                    .addWindow(2.0, 1.8, 0.5)
+                    .addHeater(2000.0)
+                    .trainOLAModel(config)
+                    .build();
 
     std::cout << "Simulation provider created successfully" << std::endl;
     std::cout << "Starting training simulation loop..." << std::endl;
 
-    // ---- The Inverse RL simulation loop ----
-    // The PPOTrainingAgent is injected as IAIModel and handles all training
-    // internally. The Room calls the SmartThermostat, which calls predict()
-    // on the agent — that's where the PPO magic happens.
     const auto room = provider.get<Room>();
     const auto clock = provider.get<IClock>();
 
@@ -152,15 +144,15 @@ int main(const int argc, char* argv[])
 
     for (int step = 0; step < config.totalTimesteps; ++step)
     {
-        clock->simulate(); // Advance time
-        room->simulate(); // Simulate room: calls thermostat, which calls predict()
+        clock->simulate();
+        room->simulate();
 
-        // std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
-        //           << "C | Step: " << step + 1 << "/" << config.totalTimesteps
-        //           << std::flush;
+        // std::cout << "\r[TrainMainNoGPS] Room temp: " << room->getTemperature()
+        //     << "C | Step: " << step + 1 << "/" << config.totalTimesteps
+        //     << std::flush;
     }
 
-    std::cout << "\n[TrainMain] Training complete!" << std::endl;
+    std::cout << "\n[TrainMainNoGPS] Training complete!" << std::endl;
 
     auto recorder = provider.get<IAIRecorder>();
     recorder->writeToCSV(outputDataPath);
