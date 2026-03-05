@@ -1,131 +1,130 @@
 /**
- * @file Main.cpp
- * @brief Entry point for the P-OLA smart thermostat simulator.
- *
- * Loads a pre-trained PPO model (produced by P-OLA_Trainer) and runs
- * the simulation with all services and temperature factors.
- *
- * If no model is found, run the trainer first:
- *   P-OLA_Trainer --help
- */
+* @file Main.cpp
+* @brief Entry point for the P-OLA smart thermostat simulator.
+*
+* Uses SimulationBuilder to assemble the simulation like Lego bricks:
+* walls, windows, heater, services, and AI model — each one optional.
+*
+* If no model is found, run the trainer first:
+*   P-OLA_Trainer --help
+*/
 
-#include <iostream>
 #include <filesystem>
+#include <iostream>
 #include <thread>
 
 #include <torch/torch.h>
-#include <forge/provider_builder.hpp>
 
-#include "Models/AIModel.hpp"
 #include "Common/DataTypes.hpp"
+#include "Models/AIModel.hpp"
+#include "Simulation/ProviderSetup.hpp"
 
-#include "Services/Clock.hpp"
-#include "Services/ConsumptionService.hpp"
-#include "Services/UserComfortService.hpp"
-
-#include "Services/Inputs/GPSService.hpp"
-#include "Services/Inputs/WeatherService.hpp"
-#include "Services/Inputs/EnergyPriceService.hpp"
-#include "Services/Inputs/UserPreferenceService.hpp"
-#include "Services/Inputs/UserScheduleService.hpp"
+#include "Interfaces/IClock.hpp"
+#include "Interfaces/IConsumptionService.hpp"
+#include "Interfaces/IInputService.hpp"
+#include "Interfaces/ITemperatureFactor.hpp"
+#include "Interfaces/IAIRecorder.hpp"
+#include "Interfaces/IUserComfortService.hpp"
 
 #include "Simulation/Room/Room.hpp"
-#include "Simulation/TemperatureFactor/Wall.hpp"
-#include "Simulation/TemperatureFactor/Heater.hpp"
-#include "Simulation/TemperatureFactor/Window.hpp"
-#include "Simulation/SmartThermostat/SmartThermostat.hpp"
-#include "Simulation/DataManager/DataManager.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
 using namespace POLA::Models;
-using namespace POLA::Services;
-using namespace POLA::Services::Inputs;
 using namespace POLA::Simulation;
-using namespace POLA::Simulation::TemperatureFactor;
 
-int main() {
-    namespace fs = std::filesystem;
-
-    const std::string modelPath = "models/ai_model.pt";
-
-    if (!fs::exists(modelPath)) {
-        std::cerr << "[ERROR] No trained model found at: " << modelPath << std::endl;
-        std::cerr << "[INFO]  Train a model first: P-OLA_Trainer --help" << std::endl;
-        return 1;
-    }
-
-    // Test the model standalone
-    AIModel model(modelPath);
-
-    constexpr AIState state {
-        21.0,   // tempIn
-        10.0,   // tempOut
-        0.25,   // electricityPrice
-        2.0,    // gpsDistance
-        1.2,    // userVelocity
-        22.0    // targetTemp
-    };
-
-    std::cout << "[AIModel] Predicted heater power: " << model.predict(state) << std::endl;
-
-    // Simulation setup
-    auto simulationClockService = std::make_shared<Clock>(900); // 1 real second = 15 minutes
-    const std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled_GPS.csv";
-    auto dataManager = std::make_shared<DataManager>(dataCsvPath);
-
-    // Configuration of the services
-    const auto provider = forge::ProviderBuilder()
-                              .addService<IClock>(simulationClockService)
-                              .addService<IInputService<EnergyPriceData>, EnergyPriceService>()
-                              .addService<IInputService<WeatherData>, WeatherService>()
-                              .addService<IInputService<GPSData>, GPSService>()
-                              .addService<IInputService<UserPreferenceData>, UserPreferenceService>()
-                              .addService<IInputService<UserScheduleData>, UserScheduleService>()
-                              .addService<IConsumptionService, ConsumptionService>()
-                              .addService<IUserComfortService, UserComfortService>()
-                              .addService<ITemperatureFactor, Heater>()
-                              .addService<ITemperatureFactor, Wall>(
-                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                                      return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
-                                  }))
-                              .addService<ITemperatureFactor, Wall>(
-                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                                      return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
-                                  }))
-                              .addService<ITemperatureFactor, Wall>(
-                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                                      return std::make_shared<Wall>(p, 5.0, 2.5, 0.3, 0.6);
-                                  }))
-                              .addService<ITemperatureFactor, Wall>(
-                                  std::function<std::shared_ptr<Wall>(ProviderRef)>([](ProviderRef p) {
-                                      return std::make_shared<Wall>(p, 4.0, 2.5, 0.3, 0.6);
-                                  }))
-                              .addService<ITemperatureFactor, Window>(
-                                  std::function<std::shared_ptr<Window>(ProviderRef)>([](ProviderRef p) {
-                                      return std::make_shared<Window>(p, 2.0, 1.8, 0.5);
-                                  }))
-                              .addService<IAIModel, AIModel>()
-                              .addService<ISmartThermostat, SmartThermostat>()
-                              .addService<Room>()
-                              .addService<DataManager, DataManager>(dataManager)
-                              .build();
-
-    std::cout << "Service Provider initialized with services:" << std::endl;
-    std::cout << "Temperature factors registered:" << std::endl;
-    for (const auto &factor : provider.getAll<ITemperatureFactor>())
+int main(const int argc, char *argv[])
+{
+    std::string modelPath = "models/ai_model.pt";
+    std::string dataCsvPath = std::string(DATA_DIR) + "/data_home_1_scheduled_GPS.csv";
+    
+    // Parse command-line arguments
+    for (int i = 1; i < argc; ++i)
     {
-        std::cout << " - " << typeid(*factor).name() << std::endl;
+        std::string arg = argv[i];
+        
+        if (arg == "--model" && i + 1 < argc)
+        modelPath = argv[++i];
+        else if (arg == "--data" && i + 1 < argc)
+        dataCsvPath = argv[++i];
+        else if (arg == "--help")
+        {
+            std::cout
+            << "P-OLA Smart Thermostat - Simulator\n"
+            << "===================================\n\n"
+            << "Runs the trained AI model on simulated environments.\n\n"
+            << "Usage: " << argv[0] << " [options]\n\n"
+            << "Options:\n"
+            << "  --model PATH    Path to trained model (default: models/ai_model.pt)\n"
+            << "  --data PATH     CSV data file             (default: data_home_1_scheduled_GPS.csv)\n"
+            << "  --help          Show this help message\n\n"
+            << "Example:\n"
+            << "  " << argv[0]
+            << " --model models/trained.pt --data data/test_data.csv\n";
+            return 0;
+        }
+        else
+        {
+            std::cerr << "Unknown argument: " << arg << " (use --help for options)"
+            << std::endl;
+            return 1;
+        }
     }
-
-    std::cout << "Simulation clock initialized at time: " << provider.get<IClock>()->getElapsedTime() << " seconds" << std::endl;
-    std::cout << "Energy price service initialized with current price: $" << provider.get<IInputService<EnergyPriceData>>()->getInput().pricesPerKwh[0] << " per kWh" << std::endl;
-    std::cout << "Weather service initialized with current temperature: " << provider.get<IInputService<WeatherData>>()->getInput().forecast[0].outdoorTemp << "°C" << std::endl;
-    std::cout << "GPS service initialized with current location: (" << provider.get<IInputService<GPSData>>()->getInput().distanceKm << " km)" << std::endl;
-    std::cout << "User preference service initialized with preferred temperature: " << provider.get<IInputService<UserPreferenceData>>()->getInput().maxTemperature << "°C" << std::endl;
-    std::cout << "Consumption service initialized with total energy: " << provider.get<IConsumptionService>()->getTotalEnergyKWh() << " kWh and total cost: $" << provider.get<IConsumptionService>()->getTotalCost() << std::endl;
-
-    auto room = provider.get<Room>();
-
+    
+    std::cout << "========================================" << std::endl;
+    std::cout << "       P-OLA Simulator" << std::endl;
+    std::cout << "========================================" << std::endl;
+    std::cout << "Model path: " << modelPath << std::endl;
+    std::cout << "Data path:  " << dataCsvPath << std::endl;
+    
+    // ---- Build the simulation using Lego bricks ----
+    std::cout << "Initializing simulation provider..." << std::endl;
+    
+    auto provider = SimulationBuilder()
+    .setClock(60.0) // Fixed 60s per step
+    .setDataSource(dataCsvPath)
+    .setRoom(20.0) // Start at 20°C
+    // Rectangular room: 4 walls
+    .addWall(5.0, 2.5, 0.3, 0.6) // Wall 1 (5m wide)
+    .addWall(4.0, 2.5, 0.3, 0.6) // Wall 2 (4m wide)
+    .addWall(5.0, 2.5, 0.3, 0.6) // Wall 3 (opposite of 1)
+    .addWall(4.0, 2.5, 0.3, 0.6) // Wall 4 (opposite of 2)
+    // 1 window
+    .addWindow(2.0, 1.8, 0.5)
+    // 1 heater (2000W)
+    .addHeater(2000.0)
+    // AI model
+    .useAIModel(modelPath)
+    // .useRuleBasedModel()
+    .build();
+    
+    std::cout << "Simulation provider created successfully" << std::endl;
+    std::cout << "Starting training simulation loop..." << std::endl;
+    
+    const auto room = provider.get<Room>();
+    const auto clock = provider.get<IClock>();
+    const auto userComfortService = provider.get<IUserComfortService>();
+    
+    // 10 000 Mean from november to march
+    for (int step = 0; step < 10000; ++step)
+    {
+        clock->simulate();
+        room->simulate();
+        userComfortService->recordComfort(room->getTemperature());
+        
+        std::cout << "\r[TrainMain] Room temp: " << room->getTemperature()
+        << "C | Step: " << step + 1 << "/" << 1000000
+        << std::flush;
+    }
+    
+    std::cout << "\n[Main] Simulation complete!" << std::endl;
+    
+    const auto comsumptionService = provider.get<IConsumptionService>();
+    
+    std::cout << "Final room temperature: " << room->getTemperature() << " °C" << std::endl;
+    std::cout << "Average user comfort: " << userComfortService->getUserComfort() << "%" << std::endl;
+    std::cout << "Total energy consumed: " << comsumptionService->getTotalEnergyKWh() << " kWh" << std::endl;
+    std::cout << "Total Cost energy: " << comsumptionService->getTotalCost() << " currency units" << std::endl;
+    
     return 0;
 }

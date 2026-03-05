@@ -7,6 +7,8 @@
 *.so
 *.dylib
 *.dll
+*.pt
+*.ckpt
 
 # Compiled Static libraries
 *.a
@@ -49,3 +51,7 @@ libtorch/
 # Datasets
 data/data_home_*
 data/home_*
+data/*.csv
+
+*.csv
+.venv/

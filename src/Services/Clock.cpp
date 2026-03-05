@@ -1,33 +1,32 @@
 /**
- * @file Clock.cpp
- * @brief Implementation of the simulation clock service.
+ * @file TrainingClock.cpp
+ * @brief Implementation of the deterministic training clock.
  */
 
 #include "Clock.hpp"
 
+#include <iostream>
+
 using namespace POLA::Services;
 
-Clock::Clock(double timeMultiplier)
-    : _timeMultiplier(timeMultiplier)
+Clock::Clock(const double fixedDtSeconds)
+    : _fixedDt(fixedDtSeconds)
 {
-    const std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-    _lastTime = now;
-    _startTime = now;
 }
 
 void Clock::simulate()
 {
-    const auto now = std::chrono::steady_clock::now();
-    _elapsedTime = std::chrono::duration<double>(now - _lastTime).count();
-    _lastTime = now;
+    _totalTime += _fixedDt;
 }
+
+void Clock::reset() { _totalTime = 0; }
 
 uint32_t Clock::getElapsedTimeSinceStart() const
 {
-    return static_cast<uint32_t>(std::chrono::duration<double>(std::chrono::steady_clock::now() - _startTime).count() * _timeMultiplier);
+    return static_cast<uint32_t>(_totalTime);
 }
 
 uint32_t Clock::getElapsedTime() const
 {
-    return static_cast<uint32_t>(_elapsedTime * _timeMultiplier);
+    return static_cast<uint32_t>(_fixedDt);
 }

@@ -196,7 +196,7 @@ src/Training/
 ├── PPOTrainer.hpp/cpp      ← The training loop orchestrator
 └── CMakeLists.txt          ← Build configuration
 
-src/TrainMain.cpp           ← CLI entry point
+src/TrainPOLA.cpp           ← CLI entry point
 ```
 
 ### `TrainingConfig.hpp` — The Control Panel

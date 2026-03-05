@@ -8,8 +8,8 @@ using namespace POLA::Services;
 using namespace POLA::Interfaces;
 using namespace POLA::Common;
 
-UserComfortService::UserComfortService(const forge::ProviderRef& provider):
-	_provider(provider)
+UserComfortService::UserComfortService(const forge::ProviderRef& provider)
+    : _provider(provider)
 {
 }
 
@@ -18,7 +18,7 @@ double UserComfortService::recordComfort(double indoorTemp)
 	double diff = 0.0;
 	auto userLocation = _provider.get<IInputService<GPSData>>()->getInput();
 	if (userLocation.distanceKm != 0) {
-		return 0.0;
+		return 100.0;
 	}
 	_comfortRecords++;
 	auto userPreference = _provider.get<IInputService<UserPreferenceData>>()->getInput();

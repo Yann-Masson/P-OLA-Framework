@@ -46,8 +46,8 @@ double Wall::simulate(const double insideTemperature)
     // 2. Calculate solar heat gain
     const auto irradianceWattsPerSqMeter = sunlightLuxIntensity / 110.0; // Convert Lux to W/m²
 
-    // Calculate how much solar heat is absorbed by the wall and transferred inside
-    const auto solarHeatGain = _solarAbsorptance * _area * irradianceWattsPerSqMeter;
+    const double wallSHGC = _solarAbsorptance * 0.35; // fraction that actually enters the room
+    const auto solarHeatGain = wallSHGC * _area * irradianceWattsPerSqMeter;
 
     // 3. Calculate Net Heat Loss (Watts)
     // We subtract solar heat gain because it adds heat to the room, reducing net loss.

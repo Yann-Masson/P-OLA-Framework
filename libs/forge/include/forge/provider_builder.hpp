@@ -1,13 +1,16 @@
 #pragma once
 
 #include "provider.hpp"
-#include <memory>
-#include <type_traits>
 #include <functional>
+#include <iostream>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <typeinfo>
+
 
 namespace forge
 {
-
     /**
      * ProviderBuilder - Builder pattern for constructing a Provider
      * Allows fluent registration of services with dependency injection support
@@ -15,10 +18,7 @@ namespace forge
     class ProviderBuilder
     {
     public:
-        ProviderBuilder()
-        {
-            provider.pImpl = std::make_shared<ProviderImpl>();
-        }
+        ProviderBuilder() { provider.pImpl = std::make_shared<ProviderImpl>(); }
 
         /**
          * Register a concrete service (no interface)
@@ -32,16 +32,21 @@ namespace forge
          * @return Reference to this builder for chaining
          */
         template <typename TImpl>
-        ProviderBuilder &addService()
+        ProviderBuilder& addService()
         {
             static_assert(!std::is_abstract_v<TImpl>,
-                          "Cannot instantiate abstract class. Use addService<TInterface, TImpl>() instead.");
+                          "Cannot instantiate abstract class. Use "
+                          "addService<TInterface, TImpl>() instead.");
 
             // Mark for deferred construction
-            deferredConstructors.push_back([this]()
-                                           {
-            auto instance = createInstance<TImpl>();
-            provider.pImpl->registerService<TImpl>(instance); });
+            deferredConstructors.push_back({
+                typeid(TImpl).name(), [this]()
+                {
+                    auto instance = createInstance<TImpl>();
+                    provider.pImpl->registerService<TImpl>(
+                        instance);
+                }
+            });
 
             return *this;
         }
@@ -60,23 +65,26 @@ namespace forge
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ProviderBuilder &addService()
+        ProviderBuilder& addService()
         {
-            static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
+            static_assert(std::is_base_of_v<TInterface, TImpl> ||
+                          std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
-            static_assert(!std::is_abstract_v<TImpl>,
-                          "TImpl cannot be abstract");
+            static_assert(!std::is_abstract_v<TImpl>, "TImpl cannot be abstract");
 
             // Mark for deferred construction with dual registration
-            deferredConstructors.push_back([this]()
-                                           {
-            auto instance = createInstance<TImpl>();
-            // Register under interface type
-            provider.pImpl->registerService<TInterface>(
-                std::static_pointer_cast<TInterface>(instance)
-            );
-            // Also register under concrete type
-            provider.pImpl->registerService<TImpl>(instance); });
+            deferredConstructors.push_back(
+                {
+                    typeid(TImpl).name(), [this]()
+                    {
+                        auto instance = createInstance<TImpl>();
+                        // Register under interface type
+                        provider.pImpl->registerService<TInterface>(
+                            std::static_pointer_cast<TInterface>(instance));
+                        // Also register under concrete type
+                        provider.pImpl->registerService<TImpl>(instance);
+                    }
+                });
 
             return *this;
         }
@@ -90,7 +98,7 @@ namespace forge
          * @return Reference to this builder for chaining
          */
         template <typename T>
-        ProviderBuilder &addService(std::shared_ptr<T> instance)
+        ProviderBuilder& addService(std::shared_ptr<T> instance)
         {
             if (!instance)
             {
@@ -111,9 +119,10 @@ namespace forge
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ProviderBuilder &addService(std::shared_ptr<TImpl> instance)
+        ProviderBuilder& addService(std::shared_ptr<TImpl> instance)
         {
-            static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
+            static_assert(std::is_base_of_v<TInterface, TImpl> ||
+                          std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
 
             if (!instance)
@@ -132,7 +141,8 @@ namespace forge
         /**
          * Register a service using a factory function
          * Automatically registers under BOTH interface and concrete types
-         * Factory receives ProviderRef and should return a shared_ptr to the implementation
+         * Factory receives ProviderRef and should return a shared_ptr to the
+         * implementation
          *
          * @tparam TInterface The interface/base type
          * @tparam TImpl The concrete implementation type
@@ -140,22 +150,26 @@ namespace forge
          * @return Reference to this builder for chaining
          */
         template <typename TInterface, typename TImpl>
-        ProviderBuilder &addService(std::function<std::shared_ptr<TImpl>(ProviderRef)> factory)
+        ProviderBuilder&
+        addService(std::function<std::shared_ptr<TImpl>(ProviderRef)> factory)
         {
-            static_assert(std::is_base_of_v<TInterface, TImpl> || std::is_same_v<TInterface, TImpl>,
+            static_assert(std::is_base_of_v<TInterface, TImpl> ||
+                          std::is_same_v<TInterface, TImpl>,
                           "TImpl must inherit from TInterface or be the same type");
-            static_assert(!std::is_abstract_v<TImpl>,
-                          "TImpl cannot be abstract");
+            static_assert(!std::is_abstract_v<TImpl>, "TImpl cannot be abstract");
 
-            deferredConstructors.push_back([this, factory]()
-                                           {
-            auto instance = factory(provider.ref());
-            // Register under interface type
-            provider.pImpl->registerService<TInterface>(
-                std::static_pointer_cast<TInterface>(instance)
-            );
-            // Also register under concrete type
-            provider.pImpl->registerService<TImpl>(instance); });
+            deferredConstructors.push_back(
+                {
+                    typeid(TImpl).name(), [this, factory]()
+                    {
+                        auto instance = factory(provider.ref());
+                        // Register under interface type
+                        provider.pImpl->registerService<TInterface>(
+                            std::static_pointer_cast<TInterface>(instance));
+                        // Also register under concrete type
+                        provider.pImpl->registerService<TImpl>(instance);
+                    }
+                });
 
             return *this;
         }
@@ -170,9 +184,10 @@ namespace forge
         {
             // Execute all deferred constructors
             // Services can now depend on previously registered services
-            for (auto &constructor : deferredConstructors)
+            int index = 1;
+            for (auto& constructor : deferredConstructors)
             {
-                constructor();
+                constructor.construct();
             }
 
             deferredConstructors.clear();
@@ -205,7 +220,7 @@ namespace forge
             else
             {
                 static_assert(std::is_constructible_v<T, ProviderRef> ||
-                                  std::is_default_constructible_v<T>,
+                              std::is_default_constructible_v<T>,
                               "Service must be either default constructible or "
                               "constructible with ProviderRef");
                 // This won't compile, but provides a better error message
@@ -213,8 +228,13 @@ namespace forge
             }
         }
 
-        Provider provider;
-        std::vector<std::function<void()>> deferredConstructors;
-    };
+        struct DeferredService
+        {
+            std::string name;
+            std::function<void()> construct;
+        };
 
+        Provider provider;
+        std::vector<DeferredService> deferredConstructors;
+    };
 } // namespace forge

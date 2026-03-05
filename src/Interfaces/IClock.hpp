@@ -13,6 +13,7 @@ class IClock
 public:
     virtual ~IClock() = default;
     virtual void simulate() = 0;
+    virtual void reset() = 0;
     [[nodiscard]] virtual uint32_t getElapsedTimeSinceStart() const = 0;
     [[nodiscard]] virtual uint32_t getElapsedTime() const = 0;
 };

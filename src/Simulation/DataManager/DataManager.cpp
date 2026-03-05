@@ -11,7 +11,10 @@ void DataManager::loadDataFromCSV(const std::string &filePath)
 {
     std::ifstream file(filePath);
     if (!file.is_open())
+    {
+        std::cerr << "Error: Could not open file " << filePath << std::endl;
         return;
+    }
 
     std::string line, word;
     std::getline(file, line); // Ignore header

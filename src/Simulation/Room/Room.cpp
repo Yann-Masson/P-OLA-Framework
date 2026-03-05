@@ -9,20 +9,24 @@
 
 #include "Interfaces/IClock.hpp"
 #include "Interfaces/ITemperatureFactor.hpp"
+#include "Interfaces/ISmartThermostat.hpp"
+#include "Simulation/TemperatureFactor/Heater.hpp"
 #include "Simulation/TemperatureFactor/Wall.hpp"
 
 using namespace POLA::Interfaces;
 using namespace POLA::Simulation;
 
-Room::Room(const forge::ProviderRef& provider, const double startingTemperature) : _indoorTemp(startingTemperature),
-                                                                                   _provider(provider)
+Room::Room(const forge::ProviderRef& provider, const double startingTemperature)
+    : _indoorTemp(startingTemperature),
+      _startingTemperature(startingTemperature), _provider(provider)
 {
     const auto walls = _provider.getAll<TemperatureFactor::Wall>();
 
     // For simplicity, we assume the room is a rectangular box with 4 walls
     if (walls.size() != 4)
     {
-        std::cerr << "Error: Room requires exactly 4 walls, but " << walls.size() << " were provided." << std::endl;
+        std::cerr << "Error: Room requires exactly 4 walls, but " << walls.size()
+            << " were provided." << std::endl;
         throw std::runtime_error("Invalid number of walls for Room simulation.");
     }
 
@@ -40,20 +44,36 @@ Room::Room(const forge::ProviderRef& provider, const double startingTemperature)
     }
     else
     {
-        std::cerr << "Error: Walls do not form a valid rectangular room." << std::endl;
+        std::cerr << "Error: Walls do not form a valid rectangular room."
+            << std::endl;
         throw std::runtime_error("Invalid wall dimensions for Room simulation.");
     }
 }
 
-double Room::getTemperature() const
+double Room::getTemperature() const { return _indoorTemp; }
+
+void Room::setTemperature(const double temperature)
 {
-    return _indoorTemp;
+    _indoorTemp = temperature;
+}
+
+void Room::reset(const double temperature)
+{
+    setTemperature(temperature);
+
+    _provider.get<ISmartThermostat>()->reset();
+    _provider.get<TemperatureFactor::Heater>()->reset();
 }
 
 void Room::simulate()
 {
     const auto clock = _provider.get<IClock>();
     const auto deltaTimeSeconds = clock->getElapsedTime();
+
+    // Let the thermostat make heating decisions before we calculate physics
+    const auto thermostat = _provider.get<ISmartThermostat>();
+
+    thermostat->simulate(_indoorTemp);
 
     const auto factors = _provider.getAll<ITemperatureFactor>();
     auto totalHeatLossWatts = 0.0;
@@ -64,10 +84,12 @@ void Room::simulate()
 
     const auto totalJoulesLost = totalHeatLossWatts * deltaTimeSeconds; // Convert Watts to Joules over the time step
 
-    const auto airMassKg = _volume * AIR_DENSITY;
+    // Effective thermal capacity: air mass + building structure (walls, furniture, etc.)
+    const auto airThermalCapacity = _volume * AIR_DENSITY * AIR_SPECIFIC_HEAT;
+    const auto effectiveThermalCapacity = airThermalCapacity + BUILDING_THERMAL_MASS;
 
     // We use a negative sign because losing Joules means the temperature drops
-    const auto deltaTempCelsius = -(totalJoulesLost) / (airMassKg * AIR_SPECIFIC_HEAT);
+    const auto deltaTempCelsius = -(totalJoulesLost) / effectiveThermalCapacity;
 
     _indoorTemp += deltaTempCelsius;
 }
