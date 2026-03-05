@@ -1,0 +1,87 @@
+========================================
+  Benchmark — model: p-ola  |  timesteps: 43200
+========================================
+
+----------------------------------------
+  data_home_1_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 90.5423%
+Total energy consumed: 62.3309 kWh
+Total Cost energy: 4.15443 €
+AI records written to ./scripts/output/p-ola_ai_records_home_1.csv (43199 records)
+
+----------------------------------------
+  data_home_2_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 87.0582%
+Total energy consumed: 51.9282 kWh
+Total Cost energy: 3.44514 €
+AI records written to ./scripts/output/p-ola_ai_records_home_2.csv (43199 records)
+
+----------------------------------------
+  data_home_3_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 92.4094%
+Total energy consumed: 69.7929 kWh
+Total Cost energy: 4.68725 €
+AI records written to ./scripts/output/p-ola_ai_records_home_3.csv (43199 records)
+
+----------------------------------------
+  data_home_4_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 91.1049%
+Total energy consumed: 63.238 kWh
+Total Cost energy: 4.27225 €
+AI records written to ./scripts/output/p-ola_ai_records_home_4.csv (43199 records)
+
+----------------------------------------
+  data_home_5_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 93.7521%
+Total energy consumed: 67.1488 kWh
+Total Cost energy: 4.49998 €
+AI records written to ./scripts/output/p-ola_ai_records_home_5.csv (43199 records)
+
+----------------------------------------
+  data_home_6_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 93.979%
+Total energy consumed: 79.0566 kWh
+Total Cost energy: 5.31059 €
+AI records written to ./scripts/output/p-ola_ai_records_home_6.csv (43199 records)
+
+----------------------------------------
+  data_home_7_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 92.9956%
+Total energy consumed: 76.6872 kWh
+Total Cost energy: 5.14712 €
+AI records written to ./scripts/output/p-ola_ai_records_home_7.csv (43199 records)
+
+----------------------------------------
+  data_home_8_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 96.1817%
+Total energy consumed: 75.6488 kWh
+Total Cost energy: 5.14222 €
+AI records written to ./scripts/output/p-ola_ai_records_home_8.csv (43199 records)
+
+----------------------------------------
+  data_home_9_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 91.8592%
+Total energy consumed: 66.503 kWh
+Total Cost energy: 4.46963 €
+AI records written to ./scripts/output/p-ola_ai_records_home_9.csv (43199 records)
+
+----------------------------------------
+  data_home_10_scheduled_GPS.csv
+----------------------------------------
+Average user comfort: 92.5363%
+Total energy consumed: 63.871 kWh
+Total Cost energy: 4.28426 €
+AI records written to ./scripts/output/p-ola_ai_records_home_10.csv (43199 records)
+
+========================================
+  Done.
+========================================
