@@ -37,6 +37,8 @@
 #include "Simulation/Room/Room.hpp"
 #include "Training/P-OLA/POLATrainingAgent.hpp"
 #include "Training/TrainingConfig.hpp"
+#include "Interfaces/IConsumptionService.hpp"
+#include "Interfaces/IUserComfortService.hpp"
 
 using namespace POLA::Common;
 using namespace POLA::Simulation;
@@ -160,6 +162,13 @@ int main(const int argc, char* argv[])
     }
 
     std::cout << "\n[TrainMain] Training complete!" << std::endl;
+    const auto consumptionService = provider.get<IConsumptionService>();
+    const auto userComfortService = provider.get<IUserComfortService>();
+
+    std::cout << "Final room temperature: " << room->getTemperature() << " °C" << std::endl;
+    std::cout << "Average user comfort: " << userComfortService->getUserComfort() << "%" << std::endl;
+    std::cout << "Total energy consumed: " << consumptionService->getTotalEnergyKWh() << " kWh" << std::endl;
+    std::cout << "Total Cost energy: " << consumptionService->getTotalCost() << " currency units" << std::endl;
 
     auto recorder = provider.get<IAIRecorder>();
     recorder->writeToCSV(outputDataPath);

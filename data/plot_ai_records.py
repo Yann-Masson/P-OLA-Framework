@@ -10,8 +10,9 @@ import matplotlib.pyplot as plt
 REQUIRED_COLUMNS = [
     "Timestamp",
     "TempIn",
-    "TempOut",
-    "TargetTemp",
+    "ForecastTemp_h0",
+    "PrefMinTemp",
+    "PrefMaxTemp",
     "AIPrediction",
     "ActualPower",
     "Reward",
@@ -71,15 +72,14 @@ def make_plot(data: dict[str, list[float]], output_path: Path | None) -> None:
 
     figure, axes = plt.subplots(3, 1, figsize=(12, 10), sharex=True)
 
-    outdoor_line, = axes[0].plot(time_hours, data["TempOut"], label="TempOut")
+    outdoor_line, = axes[0].plot(time_hours, data["ForecastTemp_h0"], label="TempOut")
     indoor_line, = axes[0].plot(time_hours, data["TempIn"], label="TempIn")
-    min_temp_line = axes[0].axhline(MIN_TEMPERATURE, label="MinTemp", linestyle=":")
-    max_temp_line = axes[0].axhline(MAX_TEMPERATURE, label="MaxTemp", linestyle=":")
-    target_line, = axes[0].plot(time_hours, data["TargetTemp"], label="TargetTemp", linestyle="--")
+    min_temp_line, = axes[0].plot(time_hours, data["PrefMinTemp"], label="MinTemp", linestyle=":")
+    max_temp_line, = axes[0].plot(time_hours, data["PrefMaxTemp"], label="MaxTemp", linestyle=":")
     axes[0].set_ylabel("Temperature")
     axes[0].set_title("AIRecord - Temperature")
     axes[0].grid(True, alpha=0.3)
-    axes[0].legend(handles=[indoor_line, outdoor_line, target_line, min_temp_line, max_temp_line])
+    axes[0].legend(handles=[indoor_line, outdoor_line, min_temp_line, max_temp_line])
 
     axes[1].plot(time_hours, data["AIPrediction"], label="AIPrediction")
     axes[1].plot(time_hours, data["ActualPower"], label="ActualPower", alpha=0.8)

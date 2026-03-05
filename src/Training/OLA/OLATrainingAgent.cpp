@@ -25,10 +25,11 @@ using namespace POLA::Interfaces;
 // OLA state is 24 dims: schedule(24)
 static constexpr int kOLAStateDim = 24;
 
-OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef& provider,
-                                   const TrainingConfig& config,
-                                   uint32_t /*seed*/)
-    : _provider(provider), _config(config), _rewardFn(provider, config)
+OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef &provider,
+                                   const TrainingConfig &config,
+                                   uint32_t seed)
+    : _provider(provider), _config(config), _rewardFn(provider, config),
+      _rng(seed)
 {
     if (torch::cuda::is_available())
     {
@@ -65,21 +66,21 @@ OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef& provider,
             _actorCritic->loadCheckpoint(ckptPath);
             std::cout << "[OLA] Resumed from checkpoint: " << ckptPath << std::endl;
         }
-        catch (const std::exception& e)
+        catch (const std::exception &e)
         {
             std::cerr << "[OLA] Warning: failed to load checkpoint '" << ckptPath
-                << "': " << e.what() << " — starting from scratch."
-                << std::endl;
+                      << "': " << e.what() << " — starting from scratch."
+                      << std::endl;
         }
     }
     else
     {
         std::cout << "[OLA] No checkpoint at '" << ckptPath
-            << "' — starting from scratch." << std::endl;
+                  << "' — starting from scratch." << std::endl;
     }
 }
 
-torch::Tensor OLATrainingAgent::normalizeState(const AIState& state) const
+torch::Tensor OLATrainingAgent::normalizeState(const AIState &state) const
 {
     // Flatten to 24 floats matching ActorCriticOLA column layout
     std::vector<float> values;
@@ -95,9 +96,83 @@ torch::Tensor OLATrainingAgent::normalizeState(const AIState& state) const
     return tensor.unsqueeze(0); // [1, 24]
 }
 
-double OLATrainingAgent::predict(const AIState& currentState)
+AIState OLATrainingAgent::buildCurrentStateFromServices() const
 {
-    const auto stateTensor = normalizeState(currentState);
+    const auto room = _provider.get<Simulation::Room>();
+    const auto energyPrice =
+        _provider.get<IInputService<EnergyPriceData>>()->getInput();
+    const auto weather = _provider.get<IInputService<WeatherData>>()->getInput();
+    const auto userPref =
+        _provider.get<IInputService<UserPreferenceData>>()->getInput();
+    const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
+    const auto userSchedule =
+        _provider.get<IInputService<UserScheduleData>>()->getInput();
+
+    const double priceNow = energyPrice.pricesPerKwh.empty()
+                                ? 0.0
+                                : energyPrice.pricesPerKwh[0];
+
+    return AIState{
+        room->getTemperature(),
+        priceNow,
+        gps.distanceKm,
+        gps.velocityKmMin,
+        weather,
+        userPref,
+        userSchedule};
+}
+
+void OLATrainingAgent::resetEpisodeEnvironment(const double avgEpisodeTemp)
+{
+    // const auto room = _provider.get<Simulation::Room>();
+    // const auto userPref =
+    //     _provider.get<IInputService<UserPreferenceData>>()->getInput();
+
+    // const double lowResetTemp = userPref.minTemperature - 2.0;
+    // const double highResetTemp = userPref.maxTemperature + 2.0;
+    // std::uniform_real_distribution<double> resetTempDist(lowResetTemp,
+    //                                                      highResetTemp);
+    // const double resetTemp = resetTempDist(_rng);
+
+    // int phaseSteps = -1;
+    // if (_config.randomizeEpisodeTimeOffset)
+    // {
+    //     const auto clock = _provider.get<IClock>();
+    //     std::uniform_int_distribution<int> phaseStepsDist(0, 24 * 60 - 1);
+    //     phaseSteps = phaseStepsDist(_rng);
+
+    //     clock->reset();
+    //     for (int i = 0; i < phaseSteps; ++i)
+    //     {
+    //         clock->simulate();
+    //     }
+    // }
+
+    // room->reset(resetTemp);
+
+    // if (_config.randomizeEpisodeTimeOffset)
+    // {
+    //     std::cout << "[OLA] Episode reset | Avg Temp: " << avgEpisodeTemp
+    //               << " °C | Reset Temp: " << resetTemp
+    //               << " °C | Time offset: " << phaseSteps << " min" << std::endl;
+    // }
+    // else
+    // {
+    //     std::cout << "[OLA] Episode reset | Reset Temp: " << resetTemp
+    //               << " °C | Avg Temp: " << avgEpisodeTemp << " °C" << std::endl;
+    // }
+    // Option A: No room resets
+    // Temperature drifts naturally based on physics throughout training
+    // Episodes mark PPO update boundaries only
+    std::cout << "[OLA] Episode completed | Avg Room Temp: " << avgEpisodeTemp
+              << " °C | Continuing with natural temperature progression" << std::endl;
+}
+
+double OLATrainingAgent::predict(const AIState &currentState)
+{
+    AIState stateForAction = currentState;
+    bool episodeEnded = false;
+    double avgEpisodeTemp = 0.0;
 
     // 1. Reward the previous transition
     if (_prevState.has_value() && _prevTransition.has_value())
@@ -105,76 +180,68 @@ double OLATrainingAgent::predict(const AIState& currentState)
         const float logit = _prevTransition->actionLogit;
         const double powerW = std::clamp(1.0 / (1.0 + std::exp(-logit)), 0.0, 1.0);
 
-        const auto fullPrevState =
-            AIState{
-                .tempIn = 0.0,
-                .electricityPrice = 0.0,
-                .userDistanceKm = 0.0, // n/a in schedule-only model
-                .userVelocityKmMin = 0.0,
-                .weather = {},
-                .userPreferences = {0.0, 0.0},
-                .userSchedule = _prevState->userSchedule
-            };
-        const auto fullCurrentState =
-            AIState{
-                .tempIn = 0.0,
-                .electricityPrice = 0.0,
-                .userDistanceKm = 0.0, // n/a in schedule-only model
-                .userVelocityKmMin = 0.0,
-                .weather = {},
-                .userPreferences = {0.0, 0.0},
-                .userSchedule = currentState.userSchedule
-            };
-
+        // Use actual environment state for reward computation (not zeros)
+        // OLA doesn't use GPS in its policy, but reward still needs real temp/price
         const double reward =
-            _rewardFn.compute(fullPrevState, powerW, fullCurrentState);
+            _rewardFn.compute(_prevState.value(), powerW, currentState);
 
         const double timestamp =
             _provider.get<IClock>()->getElapsedTimeSinceStart();
         const double actualPower = std::clamp(powerW, 0.0, 1.0);
 
-        // IAIRecorder still expects the full AIState — build a compatible one
-        // by zeroing GPS fields so the recorder CSV remains well-formed.
-        AIState recordState{};
-        recordState.tempIn = 0.0;
-        recordState.electricityPrice = 0.0;
-        recordState.userDistanceKm = 0.0; // n/a in schedule-only model
-        recordState.userVelocityKmMin = 0.0;
-        recordState.weather = {};
-        recordState.userPreferences = {0.0, 0.0};
-        recordState.userSchedule = currentState.userSchedule;
-
+        // Record the full current state (OLA doesn't use GPS in policy, but we track it)
         const auto recorder = _provider.get<IAIRecorder>();
-        recorder->record(timestamp, recordState, powerW, actualPower, reward);
+        recorder->record(timestamp, currentState, powerW, actualPower, reward);
 
         _prevTransition->reward = static_cast<float>(reward);
+        _episodeTempSum += _prevTransition->roomTemperature;
+        _episodeTempCount++;
+        _episodeStep++;
+
+        if (_episodeStep >= _config.episodeLength)
+        {
+            _prevTransition->done = true;
+            episodeEnded = true;
+            avgEpisodeTemp = _episodeTempCount > 0
+                                 ? _episodeTempSum / static_cast<double>(_episodeTempCount)
+                                 : 0.0;
+            _episodeStep = 0;
+            _episodeTempSum = 0.0;
+            _episodeTempCount = 0;
+        }
+
         _rollout.push_back(_prevTransition.value());
 
         if (_rollout.size() == static_cast<size_t>(_config.rolloutSteps))
         {
-            _rollout.back().done = true;
+            if (!episodeEnded)
+            {
+                _rollout.back().done = true;
+            }
 
-            // Compute episode average temperature before the rollout is cleared
-            double totalEpTemp = 0.0;
-            for (const auto& t : _rollout)
-                totalEpTemp += t.roomTemperature;
-            const double avgEpTemp =
-                totalEpTemp / static_cast<double>(_rollout.size());
-
-            updatePPO(stateTensor);
+            const auto bootstrapStateTensor = normalizeState(stateForAction);
+            const auto room = _provider.get<Simulation::Room>();
+            updatePPO(bootstrapStateTensor);
             _rollout.clear();
 
-            const auto room = _provider.get<Simulation::Room>();
-            const auto userPrefService =
-                _provider.get<IInputService<UserPreferenceData>>();
-            const auto userPref = userPrefService->getInput();
-            room->reset((userPref.minTemperature + userPref.maxTemperature) / 2.0);
-            std::cout << "Room reset for next episode | Avg Temp this episode: "
-                << avgEpTemp << " °C" << std::endl;
+            if (!episodeEnded)
+            {
+                _episodeTempSum = room->getTemperature();
+                _episodeTempCount = 1;
+            }
+        }
+
+        if (episodeEnded)
+        {
+            resetEpisodeEnvironment(avgEpisodeTemp);
+            _prevState.reset();
+            _prevTransition.reset();
+            stateForAction = buildCurrentStateFromServices();
         }
     }
 
     // 2. Sample action from current policy
+    const auto stateTensor = normalizeState(stateForAction);
     _actorCritic->eval();
     auto [actionLogit, logProb, value] = _actorCritic->act(stateTensor);
 
@@ -183,7 +250,7 @@ double OLATrainingAgent::predict(const AIState& currentState)
     const double powerW = std::clamp(action, 0.0, 1.0);
 
     // 3. Store transition
-    _prevState = currentState;
+    _prevState = stateForAction;
 
     RolloutTransition transition;
     const auto room = _provider.get<Simulation::Room>();
@@ -201,7 +268,7 @@ double OLATrainingAgent::predict(const AIState& currentState)
     return powerW;
 }
 
-void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
+void OLATrainingAgent::updatePPO(const torch::Tensor &finalStateTensor)
 {
     _actorCritic->train();
 
@@ -219,11 +286,11 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         const float nextValue = (t == N - 1) ? lastValue : _rollout[t + 1].value;
         const float mask = _rollout[t].done ? 0.0f : 1.0f;
         const float delta = _rollout[t].reward +
-            static_cast<float>(_config.gamma) * nextValue * mask -
-            _rollout[t].value;
+                            static_cast<float>(_config.gamma) * nextValue * mask -
+                            _rollout[t].value;
 
         lastGAE = delta + static_cast<float>(_config.gamma * _config.lambda) *
-            mask * lastGAE;
+                              mask * lastGAE;
 
         advantages[t] = lastGAE;
         returns[t] = advantages[t] + _rollout[t].value;
@@ -232,7 +299,7 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
     std::vector<torch::Tensor> stateTensors;
     std::vector<float> actionLogits, logProbs, rewards;
 
-    for (const auto& r : _rollout)
+    for (const auto &r : _rollout)
     {
         stateTensors.push_back(r.stateTensor);
         actionLogits.push_back(r.actionLogit);
@@ -245,7 +312,7 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         torch::tensor(
             actionLogits,
             torch::TensorOptions().dtype(torch::kFloat32).device(_device))
-        .unsqueeze(1);
+            .unsqueeze(1);
     auto oldLogProbsTensor = torch::tensor(
         logProbs, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
     auto advantagesTensor = torch::tensor(
@@ -255,7 +322,7 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         returns, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
 
     advantagesTensor = (advantagesTensor - advantagesTensor.mean()) /
-        (advantagesTensor.std() + 1e-8);
+                       (advantagesTensor.std() + 1e-8);
 
     for (int epoch = 0; epoch < _config.numEpochs; ++epoch)
     {
@@ -280,13 +347,13 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
             auto surr1 = ratio * mbAdvantages;
             auto surr2 = torch::clamp(ratio, 1.0 - _config.clipEpsilon,
                                       1.0 + _config.clipEpsilon) *
-                mbAdvantages;
+                         mbAdvantages;
             auto policyLoss = -torch::min(surr1, surr2).mean();
             auto valueLoss = torch::nn::functional::mse_loss(newValues, mbReturns);
             auto entropyLoss = -entropy.mean();
 
             auto totalLoss = policyLoss + _config.valueCoeff * valueLoss +
-                _config.entropyCoeff * entropyLoss;
+                             _config.entropyCoeff * entropyLoss;
 
             _optimizer->zero_grad();
             totalLoss.backward();
@@ -311,8 +378,8 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         const double avgTemp = totalTemp / N;
 
         std::cout << "[OLA] Rollout " << _numRollouts << " | Steps: " << _totalSteps
-            << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
-            << " | Avg Temp: " << avgTemp << " \u00b0C" << std::endl;
+                  << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
+                  << " | Avg Temp: " << avgTemp << " \u00b0C" << std::endl;
 
         if (avgReward > _bestAvgReward)
             _bestAvgReward = avgReward;
@@ -322,7 +389,7 @@ void OLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
     {
         exportModel();
         std::cout << "[OLA] Checkpoint saved to: " << _config.modelSavePath
-            << std::endl;
+                  << std::endl;
     }
 }
 

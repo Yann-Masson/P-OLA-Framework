@@ -19,9 +19,10 @@ using namespace POLA::Training::POLA;
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
 
-POLATrainingAgent::POLATrainingAgent(const forge::ProviderRef& provider,
-                                     const TrainingConfig& config)
-    : _provider(provider), _config(config), _rewardFn(provider, config)
+POLATrainingAgent::POLATrainingAgent(const forge::ProviderRef &provider,
+                                     const TrainingConfig &config)
+    : _provider(provider), _config(config), _rewardFn(provider, config),
+      _rng(std::random_device{}())
 {
     if (torch::cuda::is_available())
     {
@@ -59,21 +60,21 @@ POLATrainingAgent::POLATrainingAgent(const forge::ProviderRef& provider,
             _actorCritic->loadCheckpoint(ckptPath);
             std::cout << "[PPO] Resumed from checkpoint: " << ckptPath << std::endl;
         }
-        catch (const std::exception& e)
+        catch (const std::exception &e)
         {
             std::cerr << "[PPO] Warning: failed to load checkpoint '" << ckptPath
-                << "': " << e.what() << " — starting from scratch."
-                << std::endl;
+                      << "': " << e.what() << " — starting from scratch."
+                      << std::endl;
         }
     }
     else
     {
         std::cout << "[PPO] No checkpoint found at '" << ckptPath
-            << "' — starting from scratch." << std::endl;
+                  << "' — starting from scratch." << std::endl;
     }
 }
 
-torch::Tensor POLATrainingAgent::normalizeState(const AIState& state) const
+torch::Tensor POLATrainingAgent::normalizeState(const AIState &state) const
 {
     // Flatten state into a float vector: 42 dims total
     // [tempIn, price, userDistanceKm, userVelocityKmMin,
@@ -91,7 +92,7 @@ torch::Tensor POLATrainingAgent::normalizeState(const AIState& state) const
     values.push_back(static_cast<float>(StateNorm::normalize(
         state.userVelocityKmMin, StateNorm::vel_offset, StateNorm::vel_scale)));
 
-    for (const auto& wp : state.weather.forecast)
+    for (const auto &wp : state.weather.forecast)
     {
         values.push_back(static_cast<float>(
             StateNorm::normalize(wp.outdoorTemp, StateNorm::forecastTemp_offset,
@@ -119,9 +120,46 @@ torch::Tensor POLATrainingAgent::normalizeState(const AIState& state) const
     return tensor.unsqueeze(0); // [1, 42]
 }
 
-double POLATrainingAgent::predict(const AIState& currentState)
+AIState POLATrainingAgent::buildCurrentStateFromServices() const
 {
-    const auto stateTensor = normalizeState(currentState);
+    const auto room = _provider.get<Simulation::Room>();
+    const auto energyPrice =
+        _provider.get<IInputService<EnergyPriceData>>()->getInput();
+    const auto weather = _provider.get<IInputService<WeatherData>>()->getInput();
+    const auto userPref =
+        _provider.get<IInputService<UserPreferenceData>>()->getInput();
+    const auto gps = _provider.get<IInputService<GPSData>>()->getInput();
+    const auto userSchedule =
+        _provider.get<IInputService<UserScheduleData>>()->getInput();
+
+    const double priceNow = energyPrice.pricesPerKwh.empty()
+                                ? 0.0
+                                : energyPrice.pricesPerKwh[0];
+
+    return AIState{
+        room->getTemperature(),
+        priceNow,
+        gps.distanceKm,
+        gps.velocityKmMin,
+        weather,
+        userPref,
+        userSchedule};
+}
+
+void POLATrainingAgent::resetEpisodeEnvironment(const double avgEpisodeTemp)
+{
+    // Option A: No room resets
+    // Temperature drifts naturally based on physics throughout training
+    // Episodes mark PPO update boundaries only
+    std::cout << "[PPO] Episode completed | Avg Room Temp: " << avgEpisodeTemp
+              << " °C | Continuing with natural temperature progression" << std::endl;
+}
+
+double POLATrainingAgent::predict(const AIState &currentState)
+{
+    AIState stateForAction = currentState;
+    bool episodeEnded = false;
+    double avgEpisodeTemp = 0.0;
 
     // 1. Process the previous step's reward (if any)
     if (_prevState.has_value() && _prevTransition.has_value())
@@ -134,44 +172,64 @@ double POLATrainingAgent::predict(const AIState& currentState)
         // We know the old state, the old action, and the resulting new state.
         const double reward =
             _rewardFn.compute(_prevState.value(), powerW, currentState);
-        double timestamp = _provider.get<IClock>()->getElapsedTimeSinceStart();
-        double actualPower = std::clamp(powerW, 0.0, 1.0);
+        const double timestamp = _provider.get<IClock>()->getElapsedTimeSinceStart();
+        const double actualPower = std::clamp(powerW, 0.0, 1.0);
         const auto recorder = _provider.get<IAIRecorder>();
         recorder->record(timestamp, _prevState.value(), powerW, actualPower,
                          reward);
 
         // Store the transition
         _prevTransition->reward = static_cast<float>(reward);
+        _episodeTempSum += _prevTransition->roomTemperature;
+        _episodeTempCount++;
+        _episodeStep++;
+
+        if (_episodeStep >= _config.episodeLength)
+        {
+            _prevTransition->done = true;
+            episodeEnded = true;
+            avgEpisodeTemp = _episodeTempCount > 0
+                                 ? _episodeTempSum / static_cast<double>(_episodeTempCount)
+                                 : 0.0;
+            _episodeStep = 0;
+            _episodeTempSum = 0.0;
+            _episodeTempCount = 0;
+        }
+
         _rollout.push_back(_prevTransition.value());
 
         // Check if rollout buffer is full
         if (_rollout.size() == _config.rolloutSteps)
         {
-            _rollout.back().done = true; // Mark episode as done
-
-            // Compute episode average temperature before the rollout is cleared
-            double totalEpTemp = 0.0;
-            for (const auto& t : _rollout)
+            if (!episodeEnded)
             {
-                totalEpTemp += t.roomTemperature;
+                _rollout.back().done = true;
             }
-            const double avgEpTemp = totalEpTemp / static_cast<double>(_rollout.size());
 
-            updatePPO(stateTensor); // Train the network!
+            const auto bootstrapStateTensor = normalizeState(stateForAction);
+            const auto room = _provider.get<Simulation::Room>();
+            updatePPO(bootstrapStateTensor); // Train the network!
 
             _rollout.clear();
 
-            const auto room = _provider.get<Simulation::Room>();
-            const auto userPrefService =
-                _provider.get<IInputService<UserPreferenceData>>();
-            const auto userPref = userPrefService->getInput();
-            room->reset((userPref.minTemperature + userPref.maxTemperature) / 2.0);
-            std::cout << "Room reset for next episode | Avg Temp this episode: "
-                << avgEpTemp << " °C" << std::endl;
+            if (!episodeEnded)
+            {
+                _episodeTempSum = room->getTemperature();
+                _episodeTempCount = 1;
+            }
+        }
+
+        if (episodeEnded)
+        {
+            resetEpisodeEnvironment(avgEpisodeTemp);
+            _prevState.reset();
+            _prevTransition.reset();
+            stateForAction = buildCurrentStateFromServices();
         }
     }
 
     // 2. Sample action from the current policy
+    const auto stateTensor = normalizeState(stateForAction);
     _actorCritic->eval();
     auto [actionLogit, logProb, value] = _actorCritic->act(stateTensor);
 
@@ -181,7 +239,7 @@ double POLATrainingAgent::predict(const AIState& currentState)
     double powerW = std::clamp(action, 0.0, 1.0);
 
     // 3. Save transition data
-    _prevState = currentState;
+    _prevState = stateForAction;
 
     RolloutTransition transition;
     const auto room = _provider.get<Simulation::Room>();
@@ -199,7 +257,7 @@ double POLATrainingAgent::predict(const AIState& currentState)
     return powerW;
 }
 
-void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
+void POLATrainingAgent::updatePPO(const torch::Tensor &finalStateTensor)
 {
     _actorCritic->train();
 
@@ -221,11 +279,11 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         const float nextValue = (t == N - 1) ? lastValue : _rollout[t + 1].value;
         const float mask = _rollout[t].done ? 0.0f : 1.0f;
         const float delta = _rollout[t].reward +
-            static_cast<float>(_config.gamma) * nextValue * mask -
-            _rollout[t].value;
+                            static_cast<float>(_config.gamma) * nextValue * mask -
+                            _rollout[t].value;
 
         lastGAE = delta + static_cast<float>(_config.gamma * _config.lambda) *
-            mask * lastGAE;
+                              mask * lastGAE;
 
         advantages[t] = lastGAE;
         returns[t] = advantages[t] + _rollout[t].value;
@@ -235,7 +293,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
     std::vector<torch::Tensor> stateTensors;
     std::vector<float> actionLogits, logProbs, rewards;
 
-    for (const auto& r : _rollout)
+    for (const auto &r : _rollout)
     {
         stateTensors.push_back(r.stateTensor);
         actionLogits.push_back(r.actionLogit);
@@ -248,7 +306,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         torch::tensor(
             actionLogits,
             torch::TensorOptions().dtype(torch::kFloat32).device(_device))
-        .unsqueeze(1); // [N, 1]
+            .unsqueeze(1); // [N, 1]
     auto oldLogProbsTensor = torch::tensor(
         logProbs,
         torch::TensorOptions().dtype(torch::kFloat32).device(_device)); // [N]
@@ -261,7 +319,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
 
     // Normalize advantages (standard practice — stabilizes training)
     advantagesTensor = (advantagesTensor - advantagesTensor.mean()) /
-        (advantagesTensor.std() + 1e-8);
+                       (advantagesTensor.std() + 1e-8);
 
     // ---- PPO clipped update for K epochs ----
     for (int epoch = 0; epoch < _config.numEpochs; ++epoch)
@@ -292,7 +350,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
             auto surr1 = ratio * mbAdvantages;
             auto surr2 = torch::clamp(ratio, 1.0 - _config.clipEpsilon,
                                       1.0 + _config.clipEpsilon) *
-                mbAdvantages;
+                         mbAdvantages;
             auto policyLoss = -torch::min(surr1, surr2).mean();
 
             // ---- Value Loss (MSE) ----
@@ -303,7 +361,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
 
             // ---- Total Loss ----
             auto totalLoss = policyLoss + _config.valueCoeff * valueLoss +
-                _config.entropyCoeff * entropyLoss;
+                             _config.entropyCoeff * entropyLoss;
 
             // ---- Optimize ----
             _optimizer->zero_grad();
@@ -333,8 +391,8 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
         const double avgTemp = totalTemp / N;
 
         std::cout << "[PPO] Rollout " << _numRollouts << " | Steps: " << _totalSteps
-            << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
-            << " | Avg Temp: " << avgTemp << " °C" << std::endl;
+                  << "/" << _config.totalTimesteps << " | Avg Reward: " << avgReward
+                  << " | Avg Temp: " << avgTemp << " °C" << std::endl;
 
         if (avgReward > _bestAvgReward)
         {
@@ -347,7 +405,7 @@ void POLATrainingAgent::updatePPO(const torch::Tensor& finalStateTensor)
     {
         exportModel();
         std::cout << "[PPO] Checkpoint saved to: " << _config.modelSavePath
-            << std::endl;
+                  << std::endl;
     }
 }
 

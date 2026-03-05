@@ -97,7 +97,7 @@ ActorCriticPOLAImpl::evaluate(torch::Tensor states, torch::Tensor actionLogits)
     return {logProbs, values.squeeze(-1), entropy};
 }
 
-void ActorCriticPOLAImpl::exportActor(const std::string& path)
+void ActorCriticPOLAImpl::exportActor(const std::string &path)
 {
     namespace fs = std::filesystem;
 
@@ -136,9 +136,9 @@ void ActorCriticPOLAImpl::exportActor(const std::string& path)
     // Output: [batch, 1]   — heater power in [0, 1]
     //
     // State layout (column order, matching normalizeState() in trainers):
-    //   0: tempIn            [5, 35] °C       → (x - 5.0) / 30.0
-    //   1: electricityPrice  [0, 0.50] $/kWh  → x / 0.50
-    //   2: userDistanceKm    [0, 50] km        → x / 50.0
+    //   0: tempIn            [5, 35] °C           → (x - 5.0) / 30.0
+    //   1: electricityPrice  [1500, 3000] units  → (x - 1500.0) / 1500.0
+    //   2: userDistanceKm    [0, 50] km           → x / 50.0
     //   3: userVelocityKmMin [0, 2] km/min     → x / 2.0
     //   4..15 (pairs): weather.forecast[0..5]
     //       even cols: outdoorTemp  [-20, 40]  → (x + 20.0) / 60.0
@@ -149,10 +149,10 @@ void ActorCriticPOLAImpl::exportActor(const std::string& path)
     jitModule.define(R"(
         def forward(self, x):
             # ---- Scalar features ----
-            t_in    = (x[:, 0:1]  - 5.0)  / 30.0
-            price   =  x[:, 1:2]          / 0.50
-            dist    =  x[:, 2:3]          / 50.0
-            vel     =  x[:, 3:4]          / 2.0
+            t_in    = (x[:, 0:1]  - 5.0)    / 30.0
+            price   = (x[:, 1:2]  - 1500.0) / 1500.0
+            dist    =  x[:, 2:3]            / 50.0
+            vel     =  x[:, 3:4]            / 2.0
 
             # ---- Weather forecast (6 hours × 2 features) ----
             f0_t    = (x[:,  4:5]  + 20.0) / 60.0
@@ -195,7 +195,7 @@ void ActorCriticPOLAImpl::exportActor(const std::string& path)
     jitModule.save(path);
 }
 
-void ActorCriticPOLAImpl::saveCheckpoint(const std::string& path)
+void ActorCriticPOLAImpl::saveCheckpoint(const std::string &path)
 {
     namespace fs = std::filesystem;
     const fs::path filePath(path);
@@ -207,7 +207,7 @@ void ActorCriticPOLAImpl::saveCheckpoint(const std::string& path)
     std::cout << "[ActorCriticPOLA] Checkpoint saved to: " << path << std::endl;
 }
 
-void ActorCriticPOLAImpl::loadCheckpoint(const std::string& path)
+void ActorCriticPOLAImpl::loadCheckpoint(const std::string &path)
 {
     auto loaded = std::make_shared<ActorCriticPOLAImpl>(_stateDim, _actionDim);
     torch::load(loaded, path);
@@ -215,7 +215,7 @@ void ActorCriticPOLAImpl::loadCheckpoint(const std::string& path)
     auto srcParams = loaded->named_parameters();
     auto dstParams = this->named_parameters();
     torch::NoGradGuard noGrad;
-    for (auto& p : srcParams)
+    for (auto &p : srcParams)
     {
         if (dstParams.contains(p.key()))
         {

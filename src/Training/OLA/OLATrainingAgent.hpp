@@ -13,10 +13,10 @@
 #include "../TrainingConfig.hpp"
 #include "ActorCriticOLA.hpp"
 
-
 #include <forge/provider.hpp>
 #include <memory>
 #include <optional>
+#include <random>
 
 #include "Interfaces/IAIModel.hpp"
 #include "Training/RewardFunction.hpp"
@@ -26,10 +26,10 @@ namespace POLA::Training::OLA
     class OLATrainingAgent : public Interfaces::IAIModel
     {
     public:
-        OLATrainingAgent(const forge::ProviderRef& provider,
-                         const TrainingConfig& config, uint32_t seed = 42);
+        OLATrainingAgent(const forge::ProviderRef &provider,
+                         const TrainingConfig &config, uint32_t seed = 42);
 
-        double predict(const Common::AIState& state) override;
+        double predict(const Common::AIState &state) override;
 
     private:
         struct RolloutTransition
@@ -57,11 +57,17 @@ namespace POLA::Training::OLA
         std::optional<RolloutTransition> _prevTransition;
 
         int _totalSteps = 0;
+        int _episodeStep = 0;
         int _numRollouts = 0;
         double _bestAvgReward = -1e9;
+        double _episodeTempSum = 0.0;
+        int _episodeTempCount = 0;
+        std::mt19937 _rng;
 
-        torch::Tensor normalizeState(const Common::AIState& state) const;
-        void updatePPO(const torch::Tensor& finalStateTensor);
+        torch::Tensor normalizeState(const Common::AIState &state) const;
+        void updatePPO(const torch::Tensor &finalStateTensor);
         void exportModel();
+        Common::AIState buildCurrentStateFromServices() const;
+        void resetEpisodeEnvironment(double avgEpisodeTemp);
     };
 } // namespace POLA::Training::OLA

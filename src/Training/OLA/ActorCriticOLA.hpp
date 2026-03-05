@@ -27,39 +27,35 @@ namespace POLA::Training::OLA
         ActorCriticOLAImpl(int64_t stateDim = 40, int64_t actionDim = 1,
                            int64_t hiddenDim = 64);
 
-        std::tuple<torch::Tensor, torch::Tensor> forward(const torch::Tensor& state);
+        std::tuple<torch::Tensor, torch::Tensor> forward(const torch::Tensor &state);
 
         std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
         act(torch::Tensor state);
 
         std::tuple<torch::Tensor, torch::Tensor, torch::Tensor>
-        evaluate(torch::Tensor states, const torch::Tensor& actionLogits);
+        evaluate(torch::Tensor states, const torch::Tensor &actionLogits);
 
         /**
          * @brief Export the trained actor as a TorchScript model with
-         *        built-in 40-dim (no-GPS) normalization.
+         *        built-in 24-dim (schedule-only) normalization.
          *
          * State layout (column order, matching normalizeState() in
          * OLATrainingAgent):
-         *   0:  tempIn           [5, 35] °C
-         *   1:  electricityPrice [0, 0.50] $/kWh
-         *   2..13 (pairs): weather.forecast[0..5]
-         *       even cols: outdoorTemp  [-20, 40] °C
-         *       odd  cols: sunlight lux [0, 100 000]
-         *   14: userPreferences.minTemperature [15, 30] °C
-         *   15: userPreferences.maxTemperature [15, 30] °C
-         *   16..39: userSchedule.userPresent[0..23]  (0.0 or 1.0)
+         *   0..23: userSchedule.userPresent[0..23]  (0.0 or 1.0)
+         *
+         * Note: OLA uses only occupancy schedule as input. Temperature and price
+         *       are still used in the reward function, but not as policy inputs.
          */
-        void exportActor(const std::string& path);
+        void exportActor(const std::string &path);
 
-        void saveCheckpoint(const std::string& path);
-        void loadCheckpoint(const std::string& path);
+        void saveCheckpoint(const std::string &path);
+        void loadCheckpoint(const std::string &path);
 
         // Actor layers
         torch::nn::Linear actor_fc1{nullptr}, actor_fc2{nullptr}, actor_out{nullptr};
         // Critic layers
         torch::nn::Linear critic_fc1{nullptr}, critic_fc2{nullptr},
-                          critic_out{nullptr};
+            critic_out{nullptr};
         // Learnable exploration log-std
         torch::Tensor log_std;
 

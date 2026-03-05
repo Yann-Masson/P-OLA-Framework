@@ -37,8 +37,8 @@ namespace POLA::Training::POLA
          * @param config Training configuration parameters
          * @param seed Random seed for exploration and env resets
          */
-        POLATrainingAgent(const forge::ProviderRef& provider,
-                         const TrainingConfig& config);
+        POLATrainingAgent(const forge::ProviderRef &provider,
+                          const TrainingConfig &config);
 
         /**
          * @brief Predict the next action, but also perform learning!
@@ -46,7 +46,7 @@ namespace POLA::Training::POLA
          * @param state The current simulation state
          * @return double The chosen heater power [0, 1]
          */
-        double predict(const Common::AIState& state) override;
+        double predict(const Common::AIState &state) override;
 
     private:
         struct RolloutTransition
@@ -81,12 +81,18 @@ namespace POLA::Training::POLA
         std::optional<RolloutTransition> _prevTransition;
 
         int _totalSteps = 0;
+        int _episodeStep = 0;
         int _numRollouts = 0;
         double _bestAvgReward = -1e9;
+        double _episodeTempSum = 0.0;
+        int _episodeTempCount = 0;
+        std::mt19937 _rng;
 
         // Internal methods
-        torch::Tensor normalizeState(const Common::AIState& state) const;
-        void updatePPO(const torch::Tensor& finalStateTensor);
+        torch::Tensor normalizeState(const Common::AIState &state) const;
+        void updatePPO(const torch::Tensor &finalStateTensor);
         void exportModel();
+        Common::AIState buildCurrentStateFromServices() const;
+        void resetEpisodeEnvironment(double avgEpisodeTemp);
     };
 } // namespace POLA::Training
