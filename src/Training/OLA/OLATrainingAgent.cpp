@@ -2,13 +2,8 @@
  * @file OLATrainingAgent.cpp
  * @brief Implementation of the GPS-free PPO training agent.
  *
- * State vector layout (40 dimensions, matching ActorCriticOLA.exportActor):
- *   [0]     tempIn
- *   [1]     electricityPrice
- *   [2..13] weather.forecast[0..5] (outdoorTemp, sunlightLux per hour × 6)
- *   [14]    userPreferences.minTemperature
- *   [15]    userPreferences.maxTemperature
- *   [16..39] userSchedule.userPresent[0..23]
+ * State vector layout (24 dimensions, matching ActorCriticOLA.exportActor):
+ *   [0..23] userSchedule.userPresent[0..23]
  */
 
 #include <algorithm>
@@ -27,9 +22,8 @@ using namespace POLA::Training::OLA;
 using namespace POLA::Common;
 using namespace POLA::Interfaces;
 
-// OLA state is 40 dims: tempIn(1) + price(1) + weather(12) + prefs(2) +
-// schedule(24)
-static constexpr int kOLAStateDim = 40;
+// OLA state is 24 dims: schedule(24)
+static constexpr int kOLAStateDim = 24;
 
 OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef& provider,
                                    const TrainingConfig& config,
@@ -87,46 +81,18 @@ OLATrainingAgent::OLATrainingAgent(const forge::ProviderRef& provider,
 
 torch::Tensor OLATrainingAgent::normalizeState(const AIState& state) const
 {
-    // Flatten to 40 floats matching ActorCriticOLA column layout
+    // Flatten to 24 floats matching ActorCriticOLA column layout
     std::vector<float> values;
     values.reserve(kOLAStateDim);
 
-    // [0] tempIn
-    values.push_back(static_cast<float>(StateNorm::normalize(
-        state.tempIn, StateNorm::tempIn_offset, StateNorm::tempIn_scale)));
-    // [1] electricityPrice
-    values.push_back(static_cast<float>(
-        StateNorm::normalize(state.electricityPrice, StateNorm::price_offset,
-                             StateNorm::price_scale)));
-
-    // [2..13] weather forecast (6 hours × 2 features)
-    for (const auto& wp : state.weather.forecast)
-    {
-        values.push_back(static_cast<float>(
-            StateNorm::normalize(wp.outdoorTemp, StateNorm::forecastTemp_offset,
-                                 StateNorm::forecastTemp_scale)));
-        values.push_back(static_cast<float>(StateNorm::normalize(
-            wp.sunlightLuxIntensity, StateNorm::sunlight_offset,
-            StateNorm::sunlight_scale)));
-    }
-
-    // [14] userPreferences.minTemperature
-    values.push_back(static_cast<float>(StateNorm::normalize(
-        state.userPreferences.minTemperature, StateNorm::prefTemp_offset,
-        StateNorm::prefTemp_scale)));
-    // [15] userPreferences.maxTemperature
-    values.push_back(static_cast<float>(StateNorm::normalize(
-        state.userPreferences.maxTemperature, StateNorm::prefTemp_offset,
-        StateNorm::prefTemp_scale)));
-
-    // [16..39] userSchedule (24 hours, binary)
+    // [0..23] userSchedule (24 hours, binary)
     for (const bool present : state.userSchedule.userPresent)
         values.push_back(present ? 1.0f : 0.0f);
 
     auto tensor = torch::tensor(
         values, torch::TensorOptions().dtype(torch::kFloat32).device(_device));
 
-    return tensor.unsqueeze(0); // [1, 40]
+    return tensor.unsqueeze(0); // [1, 24]
 }
 
 double OLATrainingAgent::predict(const AIState& currentState)
@@ -141,22 +107,22 @@ double OLATrainingAgent::predict(const AIState& currentState)
 
         const auto fullPrevState =
             AIState{
-                .tempIn = _prevState->tempIn,
-                .electricityPrice = _prevState->electricityPrice,
-                .userDistanceKm = 0.0, // n/a in no-GPS model
+                .tempIn = 0.0,
+                .electricityPrice = 0.0,
+                .userDistanceKm = 0.0, // n/a in schedule-only model
                 .userVelocityKmMin = 0.0,
-                .weather = _prevState->weather,
-                .userPreferences = _prevState->userPreferences,
+                .weather = {},
+                .userPreferences = {0.0, 0.0},
                 .userSchedule = _prevState->userSchedule
             };
         const auto fullCurrentState =
             AIState{
-                .tempIn = currentState.tempIn,
-                .electricityPrice = currentState.electricityPrice,
-                .userDistanceKm = 0.0, // n/a in no-GPS model
+                .tempIn = 0.0,
+                .electricityPrice = 0.0,
+                .userDistanceKm = 0.0, // n/a in schedule-only model
                 .userVelocityKmMin = 0.0,
-                .weather = currentState.weather,
-                .userPreferences = currentState.userPreferences,
+                .weather = {},
+                .userPreferences = {0.0, 0.0},
                 .userSchedule = currentState.userSchedule
             };
 
@@ -170,12 +136,12 @@ double OLATrainingAgent::predict(const AIState& currentState)
         // IAIRecorder still expects the full AIState — build a compatible one
         // by zeroing GPS fields so the recorder CSV remains well-formed.
         AIState recordState{};
-        recordState.tempIn = currentState.tempIn;
-        recordState.electricityPrice = currentState.electricityPrice;
-        recordState.userDistanceKm = 0.0; // n/a in no-GPS model
+        recordState.tempIn = 0.0;
+        recordState.electricityPrice = 0.0;
+        recordState.userDistanceKm = 0.0; // n/a in schedule-only model
         recordState.userVelocityKmMin = 0.0;
-        recordState.weather = currentState.weather;
-        recordState.userPreferences = currentState.userPreferences;
+        recordState.weather = {};
+        recordState.userPreferences = {0.0, 0.0};
         recordState.userSchedule = currentState.userSchedule;
 
         const auto recorder = _provider.get<IAIRecorder>();

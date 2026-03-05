@@ -112,53 +112,16 @@ void ActorCriticOLAImpl::exportActor(const std::string& path)
     jitModule.register_parameter("actor_out_b", actor_out->bias.clone().cpu(),
                                  false);
 
-    // No-GPS forward:
-    //   Input:  x [batch, 40]
+    // Schedule-Only forward:
+    //   Input:  x [batch, 24]
     //   Layout:
-    //     0:  tempIn           → (x - 5.0) / 30.0
-    //     1:  electricityPrice → x / 0.50
-    //     2..13 (pairs): weather.forecast[0..5]
-    //       even = outdoorTemp  → (x + 20.0) / 60.0
-    //       odd  = sunlight lux → x / 100000.0
-    //     14: userPreferences.minTemperature → (x - 15.0) / 15.0
-    //     15: userPreferences.maxTemperature → (x - 15.0) / 15.0
-    //     16..39: userSchedule.userPresent[0..23] (0.0 or 1.0, no normalization)
+    //     0..23: userSchedule.userPresent[0..23]
     jitModule.define(R"(
         def forward(self, x):
-            # ---- Scalar features ----
-            t_in  = (x[:, 0:1]  - 5.0)  / 30.0
-            price =  x[:, 1:2]          / 0.50
-
-            # ---- Weather forecast (6 hours × 2 features) ----
-            f0_t  = (x[:,  2:3]  + 20.0) / 60.0
-            f0_s  =  x[:,  3:4]          / 100000.0
-            f1_t  = (x[:,  4:5]  + 20.0) / 60.0
-            f1_s  =  x[:,  5:6]          / 100000.0
-            f2_t  = (x[:,  6:7]  + 20.0) / 60.0
-            f2_s  =  x[:,  7:8]          / 100000.0
-            f3_t  = (x[:,  8:9]  + 20.0) / 60.0
-            f3_s  =  x[:,  9:10] / 100000.0
-            f4_t  = (x[:, 10:11] + 20.0) / 60.0
-            f4_s  =  x[:, 11:12] / 100000.0
-            f5_t  = (x[:, 12:13] + 20.0) / 60.0
-            f5_s  =  x[:, 13:14] / 100000.0
-
-            # ---- User preferences ----
-            pref_min = (x[:, 14:15] - 15.0) / 15.0
-            pref_max = (x[:, 15:16] - 15.0) / 15.0
-
             # ---- Occupancy schedule (24 hours, already 0/1) ----
-            schedule = x[:, 16:40]
+            schedule = x[:, 0:24]
 
-            x_norm = torch.cat([
-                t_in, price,
-                f0_t, f0_s, f1_t, f1_s, f2_t, f2_s,
-                f3_t, f3_s, f4_t, f4_s, f5_t, f5_s,
-                pref_min, pref_max,
-                schedule
-            ], dim=1)
-
-            h = torch.relu(torch.matmul(x_norm, self.actor_fc1_w.t()) + self.actor_fc1_b)
+            h = torch.relu(torch.matmul(schedule, self.actor_fc1_w.t()) + self.actor_fc1_b)
             h = torch.relu(torch.matmul(h, self.actor_fc2_w.t()) + self.actor_fc2_b)
             logit = torch.matmul(h, self.actor_out_w.t()) + self.actor_out_b
 
@@ -191,6 +154,5 @@ void ActorCriticOLAImpl::loadCheckpoint(const std::string& path)
         if (dstParams.contains(p.key()))
             dstParams[p.key()].copy_(p.value());
     }
-    std::cout << "[ActorCriticOLA] Checkpoint loaded from: " << path
-        << std::endl;
+    std::cout << "[ActorCriticOLA] Checkpoint loaded from: " << path << std::endl;
 }
